@@ -24,6 +24,12 @@ const FROM =
 const REPLY_TO = process.env.MAIL_REPLY_TO || '';
 const SITE = process.env.SITE_URL || 'https://spriceprivate.onrender.com';
 
+// Пароль приложения Google показывается группами по 4 символа («abcd efgh ijkl mnop»),
+// и его сплошь и рядом копируют вместе с пробелами. В SMTP пробелы — часть пароля,
+// поэтому логин падает с 535 «Username and Password not accepted», и причина неочевидна.
+// Убираем все пробелы здесь: тогда оба варианта вставки работают одинаково.
+const SMTP_PASS = String(process.env.SMTP_PASS || '').replace(/\s+/g, '');
+
 let transporter = null;
 let mode = 'dev';
 
@@ -37,7 +43,7 @@ function init() {
       port: Number(process.env.SMTP_PORT || 587),
       secure: String(process.env.SMTP_SECURE || '') === 'true' || Number(process.env.SMTP_PORT) === 465,
       auth: process.env.SMTP_USER
-        ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+        ? { user: process.env.SMTP_USER, pass: SMTP_PASS }
         : undefined,
       connectionTimeout: 15000,
       greetingTimeout: 15000

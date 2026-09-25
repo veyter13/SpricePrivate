@@ -20,18 +20,47 @@ const HOST = (process.env.SMTP_HOST || '').trim();
 const PORT = Number(process.env.SMTP_PORT || 587);
 const SECURE = String(process.env.SMTP_SECURE || '') === 'true' || PORT === 465;
 const USER = (process.env.SMTP_USER || '').trim();
-const PASS = process.env.SMTP_PASS || '';
+const PASS_RAW = process.env.SMTP_PASS || '';
+// Google показывает пароль приложения группами по 4 («abcd efgh ijkl mnop»), его часто
+// копируют с пробелами. В SMTP пробелы — часть пароля, поэтому убираем их так же,
+// как это делает src/mail.js, иначе проверка разойдётся с реальной отправкой.
+const PASS = PASS_RAW.replace(/\s+/g, '');
 const RESEND = (process.env.RESEND_API_KEY || '').trim();
 const FROM = process.env.MAIL_FROM || 'Sprice Private <no-reply@sprice.local>';
 
 const ok = (s) => console.log('  \u2713 ' + s);
 const bad = (s) => console.log('  \u2717 ' + s);
+const warn = (s) => console.log('  ! ' + s);
 const info = (s) => console.log('    ' + s);
 
 function mask(s) {
   if (!s) return '(пусто)';
   if (s.length <= 4) return '***';
   return s.slice(0, 2) + '*'.repeat(Math.max(3, s.length - 4)) + s.slice(-2) + '  (' + s.length + ' симв.)';
+}
+
+/**
+ * Предполётная проверка формы пароля — до сети. Позволяет сказать «это обычный пароль,
+ * а не пароль приложения» сразу, а не после невнятного 535 от Google.
+ * Возвращает массив предупреждений (пустой = придраться не к чему).
+ */
+function passHints() {
+  const out = [];
+  if (!PASS) return out;
+  if (PASS_RAW !== PASS) {
+    out.push('в SMTP_PASS были пробелы — они убраны (пароль приложения Google показывается группами по 4)');
+  }
+  if (/^[A-Za-z0-9]{16}$/.test(PASS)) return out;
+  if (PASS.length < 16) {
+    out.push('пароль короче 16 символов — у пароля приложения Google ровно 16 латинских букв и цифр,');
+    out.push('а это, судя по длине, обычный пароль от аккаунта. Для SMTP он не подходит.');
+  } else if (!/^[A-Za-z0-9]+$/.test(PASS)) {
+    out.push('в пароле есть символы кроме латинских букв и цифр — пароль приложения Google их не содержит');
+  } else {
+    out.push('длина пароля ' + PASS.length + ' символов, а у пароля приложения Google ровно 16');
+  }
+  out.push('получить: https://myaccount.google.com/apppasswords (нужна включённая двухэтапная аутентификация)');
+  return out;
 }
 
 /** Понятная расшифровка типовых отказов SMTP */
@@ -92,6 +121,14 @@ function explain(err) {
     console.log('');
     process.exitCode = 1;
     return;
+  }
+
+  // Сначала придираемся к форме пароля — это дешевле, чем ловить 535 от Google.
+  const hints = passHints();
+  if (hints.length) {
+    warn('пароль выглядит подозрительно:');
+    hints.forEach(info);
+    console.log('');
   }
 
   const t = nodemailer.createTransport({
