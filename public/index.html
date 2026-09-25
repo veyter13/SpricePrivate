@@ -1289,6 +1289,54 @@
       font-size: 0.73rem; color: var(--text-2); line-height: 1.5;
     }
 
+    /* ═══════════ АККАУНТ: КОД ИЗ ПИСЬМА И СБРОС ПАРОЛЯ ═══════════ */
+    .auth__row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .auth__link {
+      background: none; border: none; padding: 0; cursor: pointer;
+      color: var(--accent); font-weight: 700; font-size: 0.79rem;
+      font-family: inherit; white-space: nowrap;
+    }
+    .auth__link:hover { text-decoration: underline; }
+    .auth__link:disabled { color: var(--text-3); cursor: default; text-decoration: none; font-weight: 600; }
+
+    .auth__code-head { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; margin-bottom: 4px; }
+    .auth__code-ico {
+      width: 46px; height: 46px; border-radius: 15px; display: grid; place-items: center;
+      background: var(--accent-soft); border: 1px solid var(--border); color: var(--accent);
+    }
+    .auth__code-ico svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+    .auth__code-lead { margin: 0; font-size: 0.83rem; line-height: 1.55; color: var(--text-2); }
+    .auth__code-lead b { color: var(--text); font-weight: 700; word-break: break-all; }
+
+    .code { display: flex; gap: 8px; justify-content: center; }
+    .code__cell {
+      width: 44px; height: 54px; padding: 0; text-align: center;
+      font-family: var(--font-mono); font-size: 1.5rem; font-weight: 700;
+      color: var(--text); background: var(--input-bg); border: 1px solid var(--border);
+      border-radius: var(--r-sm); outline: none;
+      transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease), transform 0.2s var(--ease);
+    }
+    .code__cell:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); transform: translateY(-1px); }
+    .code__cell.filled { border-color: var(--border-hover); }
+    .code.bad .code__cell { border-color: var(--con); }
+    .code.shake { animation: codeShake 0.4s var(--ease); }
+    @keyframes codeShake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-7px); }
+      40% { transform: translateX(6px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(2px); }
+    }
+    .auth__code-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 2px; }
+    .auth__code-hint { display: inline-block; margin-top: 4px; font-size: 0.76rem; color: var(--text-3); }
+    .order--off { opacity: 0.55; }
+    .order--off .order__p { text-decoration: line-through; }
+
+    @media (max-width: 420px) {
+      .code { gap: 5px; }
+      .code__cell { width: 38px; height: 48px; font-size: 1.3rem; }
+    }
+
     /* ═══════════ АККАУНТ: ПРОФИЛЬ ═══════════ */
     .profile__head { display: flex; align-items: center; gap: 16px; margin-bottom: 22px; }
     .profile__ava {
@@ -1806,7 +1854,7 @@
         <svg viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
         <span data-i18n="detail.back">Назад в каталог</span>
       </button>
-      <span class="detail__crumb"><span data-i18n="detail.crumb">Каталог</span> / <b id="detailCrumb">Продукт</b></span>
+      <span class="detail__crumb"><span data-i18n="detail.crumb">Каталог</span> / <b id="detailCrumb" data-i18n="detail.phName">Продукт</b></span>
     </div>
 
     <div class="detail__scroll" id="detailScroll">
@@ -1816,7 +1864,7 @@
           <div class="detail__icon" id="detailIcon"></div>
           <div>
             <span class="tag" id="detailTag">External</span>
-            <h2 class="detail__title" id="detailTitle">Продукт</h2>
+            <h2 class="detail__title" id="detailTitle" data-i18n="detail.phName">Продукт</h2>
             <p class="detail__lead" id="detailLead"></p>
           </div>
         </header>
@@ -1905,7 +1953,7 @@
 
       <div class="modal__head" style="margin-bottom:18px">
         <h3 class="modal__title" id="authTitle"><span data-i18n="auth.title">Личный кабинет</span> <span>Sprice</span></h3>
-        <p class="modal__sub" id="authSub">Войди, чтобы сохранить заказы и историю</p>
+        <p class="modal__sub" id="authSub" data-i18n="auth.subLogin">Войди, чтобы сохранить заказы и историю</p>
       </div>
 
       <div class="auth__tabs" role="tablist" aria-label="Вход или регистрация" data-i18n-aria="auth.tabs.aria">
@@ -1935,11 +1983,14 @@
           <em class="field__msg" id="mLoginPw"></em>
         </div>
 
-        <label class="check">
-          <input type="checkbox" id="loginRemember" checked>
-          <span class="check__box"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></span>
-          <span data-i18n="auth.remember">Запомнить меня на этом устройстве</span>
-        </label>
+        <div class="auth__row">
+          <label class="check">
+            <input type="checkbox" id="loginRemember" checked>
+            <span class="check__box"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></span>
+            <span data-i18n="auth.rememberShort">Запомнить меня</span>
+          </label>
+          <button class="auth__link" type="button" id="forgotBtn" data-i18n="auth.forgot">Забыли пароль?</button>
+        </div>
 
         <div class="auth__err" id="loginErr" hidden>
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>
@@ -1970,7 +2021,7 @@
         <div class="field" id="fRegPw">
           <label for="regPw" data-i18n="auth.password">Пароль</label>
           <div class="field__wrap">
-            <input type="password" id="regPw" autocomplete="new-password" placeholder="минимум 6 символов" data-i18n-ph="auth.ph.min6">
+            <input type="password" id="regPw" autocomplete="new-password" placeholder="минимум 8 символов" data-i18n-ph="auth.ph.min8">
             <button class="field__eye" type="button" data-eye="regPw" aria-label="Показать пароль" data-i18n-aria="auth.eyeShow">
               <svg viewBox="0 0 24 24"><path d="M2 12s3.8-7 10-7 10 7 10 7-3.8 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
@@ -2004,11 +2055,76 @@
         <button class="btn btn--primary auth__submit" type="submit" id="regBtn" data-i18n="auth.registerBtn">Создать аккаунт</button>
       </form>
 
+      <!-- ── ПОДТВЕРЖДЕНИЕ КОДОМ ИЗ ПИСЬМА / СБРОС ПАРОЛЯ ── -->
+      <form class="auth__form" id="codeForm" novalidate hidden>
+        <div class="auth__code-head">
+          <span class="auth__code-ico">
+            <svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="3"/><path d="M3 7.5l9 6 9-6"/></svg>
+          </span>
+          <p class="auth__code-lead" id="codeLead"></p>
+        </div>
+
+        <!-- режим «забыли пароль»: сначала спрашиваем почту -->
+        <div class="field" id="fCodeMail" hidden>
+          <label for="codeMail" data-i18n="auth.email">E-mail</label>
+          <div class="field__wrap">
+            <input type="email" id="codeMail" autocomplete="email" placeholder="mail@mail.ru" spellcheck="false" data-i18n-ph="auth.ph.mail">
+          </div>
+          <em class="field__msg" id="mCodeMail"></em>
+        </div>
+
+        <!-- ввод шестизначного кода -->
+        <div id="codeBox">
+          <div class="code" id="codeCells">
+            <input class="code__cell" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="one-time-code" aria-label="Цифра 1" data-code-cell>
+            <input class="code__cell" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Цифра 2" data-code-cell>
+            <input class="code__cell" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Цифра 3" data-code-cell>
+            <input class="code__cell" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Цифра 4" data-code-cell>
+            <input class="code__cell" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Цифра 5" data-code-cell>
+            <input class="code__cell" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Цифра 6" data-code-cell>
+          </div>
+          <em class="field__msg" id="mCode"></em>
+        </div>
+
+        <!-- режим сброса: новый пароль после верного кода -->
+        <div id="newPwBox" hidden>
+          <div class="field" id="fNewPw">
+            <label for="newPw" data-i18n="auth.newPw">Новый пароль</label>
+            <div class="field__wrap">
+              <input type="password" id="newPw" autocomplete="new-password" placeholder="минимум 8 символов" data-i18n-ph="auth.ph.min8">
+              <button class="field__eye" type="button" data-eye="newPw" aria-label="Показать пароль" data-i18n-aria="auth.eyeShow">
+                <svg viewBox="0 0 24 24"><path d="M2 12s3.8-7 10-7 10 7 10 7-3.8 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+            <em class="field__msg" id="mNewPw"></em>
+          </div>
+          <div class="field" id="fNewPw2">
+            <label for="newPw2" data-i18n="auth.repeat">Повтори пароль</label>
+            <div class="field__wrap">
+              <input type="password" id="newPw2" autocomplete="new-password" placeholder="ещё раз" data-i18n-ph="auth.ph.again">
+            </div>
+            <em class="field__msg" id="mNewPw2"></em>
+          </div>
+        </div>
+
+        <div class="auth__err" id="codeErr" hidden>
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>
+          <span id="codeErrText"></span>
+        </div>
+
+        <button class="btn btn--primary auth__submit" type="submit" id="codeBtn" data-i18n="auth.codeBtn">Подтвердить</button>
+
+        <div class="auth__code-foot">
+          <button class="auth__link" type="button" id="codeResend"></button>
+          <button class="auth__link" type="button" id="codeBack" data-i18n="auth.codeBack">← Назад</button>
+        </div>
+      </form>
+
       <p class="auth__foot" id="authFoot"></p>
 
       <div class="auth__note" data-i18n="auth.note">
-        Пароль хранится в зашифрованном виде (PBKDF2-SHA256) прямо в браузере —
-        на сервер ничего не уходит. Аккаунт привязан к этому устройству.
+        Пароль хранится в зашифрованном виде (scrypt) на нашем сервере и никогда не передаётся в открытом виде.
+        Аккаунт работает на любом устройстве.
       </div>
     </div>
   </div>
@@ -2885,6 +3001,7 @@
 
           'detail.back': 'Назад в каталог',
           'detail.crumb': 'Каталог',
+          'detail.phName': 'Продукт',
           'detail.features': 'Что внутри',
           'detail.specs': 'Характеристики',
           'detail.ph': 'Скриншоты <b></b> появятся здесь позже — покажу интерфейс и меню.',
@@ -2912,6 +3029,13 @@
           'auth.password': 'Пароль',
           'auth.ph.pw': '••••••••',
           'auth.remember': 'Запомнить меня на этом устройстве',
+          'auth.rememberShort': 'Запомнить меня',
+          'auth.forgot': 'Забыли пароль?',
+          'auth.newPw': 'Новый пароль',
+          'auth.codeBtn': 'Подтвердить',
+          'auth.subCode': 'Подтверждение почты',
+          'auth.codeBack': '← Назад',
+          'auth.ph.min8': 'минимум 8 символов',
           'auth.nick': 'Ник',
           'auth.ph.nickName': 'sprice',
           'auth.email': 'E-mail',
@@ -2921,7 +3045,7 @@
           'auth.ph.again': 'ещё раз',
           'auth.stay': 'Оставаться в аккаунте после закрытия сайта',
           'auth.registerBtn': 'Создать аккаунт',
-          'auth.note': 'Пароль хранится в зашифрованном виде (PBKDF2-SHA256) прямо в браузере — на сервер ничего не уходит. Аккаунт привязан к этому устройству.',
+          'auth.note': 'Пароль хранится в зашифрованном виде (scrypt) на нашем сервере и никогда не передаётся в открытом виде. Аккаунт работает на любом устройстве.',
           'auth.eyeShow': 'Показать пароль',
           'auth.eyeHide': 'Скрыть пароль',
 
@@ -2940,29 +3064,61 @@
           'val.mail.empty': 'Без e-mail не получится войти с другого устройства.',
           'val.mail.bad': 'Похоже на опечатку. Пример: mail@mail.ru',
           'val.pw.empty': 'Придумай пароль.',
-          'val.pw.short': 'Минимум 6 символов.',
+          'val.pw.short': 'Минимум 8 символов.',
+          'val.pw.letter': 'Добавь хотя бы одну букву.',
+          'val.pw.digit': 'Добавь хотя бы одну цифру.',
           'val.pw2.empty': 'Повтори пароль.',
           'val.pw2.mismatch': 'Пароли не совпадают.',
           'err.login.noid': 'Введи ник или e-mail.',
           'err.login.nopw': 'Введи пароль.',
-          'err.login.nofield': 'Такого аккаунта нет.',
-          'err.login.notfound': 'Аккаунт не найден. Проверь раскладку — или зарегистрируйся, это займёт полминуты.',
+          'err.login.nofield': 'Неверный ник или пароль.',
+          'err.login.notfound': 'Неверный ник или пароль.',
           'err.login.pwfield': 'Пароль не подошёл.',
-          'err.login.badpw': 'Неверный пароль. Если забыл — просто создай новый аккаунт с другим ником.',
+          'err.login.badpw': 'Неверный ник или пароль.',
           'err.reg.mailfield': 'Этот e-mail уже занят.',
           'err.reg.mail': 'Такой e-mail уже зарегистрирован — попробуй войти.',
           'err.reg.nickfield': 'Этот ник уже занят.',
           'err.reg.nick': 'Ник занят. Придумай другой или войди в существующий аккаунт.',
-          'err.reg.storage': 'Браузер не даёт сохранить аккаунт (приватный режим?). Открой сайт в обычном окне и попробуй снова.',
+          'err.reg.storage': 'Не удалось создать аккаунт. Попробуй ещё раз.',
           'busy.checking': 'Проверяю',
           'busy.creating': 'Создаю',
+          'busy.sending': 'Отправляю',
+          'busy.saving': 'Сохраняю',
           'busy.done': 'Готово',
 
           'toast.welcome': 'С возвращением, {name}!',
           'toast.created': 'Аккаунт создан. Добро пожаловать, {name}!',
           'toast.loggedOut': 'Вы вышли из аккаунта, {name}',
           'toast.sessionEnded': 'Сессия завершена',
-          'toast.orderSaved': 'Заказ «{name}» сохранён в профиле'
+          'toast.orderSaved': 'Заказ «{name}» сохранён в профиле',
+          'toast.needVerify': 'Подтверди почту — код отправлен на {mail}',
+          'toast.resetDone': 'Пароль обновлён — войди с новым',
+
+          'code.leadVerify': 'Мы отправили код на <b>{mail}</b>. Введи его, чтобы подтвердить почту.',
+          'code.leadResetAsk': 'Укажи почту аккаунта — пришлём код для сброса пароля.',
+          'code.leadReset': 'Код отправлен на <b>{mail}</b>. Введи его, чтобы задать новый пароль.',
+          'code.leadNewPw': 'Код верный. Придумай новый пароль.',
+          'code.resend': 'Отправить код заново',
+          'code.resendIn': 'Заново через {sec} с',
+          'code.sent': 'Код отправлен повторно',
+          'code.checkSpam': 'Письма нет? Загляни в «Спам».',
+          'code.sendBtn': 'Отправить код',
+          'code.saveBtn': 'Сохранить пароль',
+          'code.backToLogin': '← Ко входу',
+
+          'err.code.empty': 'Введи все 6 цифр из письма.',
+          'err.code.wrong': 'Неверный код. Осталось попыток: {n}.',
+          'err.code.expired': 'Код устарел. Запроси новый.',
+          'err.code.attempts': 'Слишком много попыток. Запроси новый код.',
+          'err.code.nocode': 'Активного кода нет. Запроси новый.',
+          'err.code.tooSoon': 'Подожди {sec} с перед повторной отправкой.',
+          'err.code.tooMany': 'Слишком много писем на этот адрес. Попробуй позже.',
+          'err.mail': 'Не удалось отправить письмо. Попробуй позже.',
+          'err.mail.resetHint': 'Если такая почта зарегистрирована — письмо уже в пути.',
+          'err.network': 'Нет связи с сервером. Проверь интернет и попробуй снова.',
+          'err.server': 'Что-то сломалось на сервере. Попробуй позже.',
+          'err.rate': 'Слишком много попыток. Подожди минуту.',
+          'err.verified': 'Сначала подтверди почту.'
         },
 
         en: {
@@ -3077,6 +3233,7 @@
 
           'detail.back': 'Back to catalog',
           'detail.crumb': 'Catalog',
+          'detail.phName': 'Product',
           'detail.features': 'What is inside',
           'detail.specs': 'Specifications',
           'detail.ph': 'Screenshots of <b></b> will appear here later — I will show the interface and the menus.',
@@ -3104,6 +3261,13 @@
           'auth.password': 'Password',
           'auth.ph.pw': '••••••••',
           'auth.remember': 'Remember me on this device',
+          'auth.rememberShort': 'Remember me',
+          'auth.forgot': 'Forgot password?',
+          'auth.newPw': 'New password',
+          'auth.codeBtn': 'Confirm',
+          'auth.subCode': 'Email confirmation',
+          'auth.codeBack': '← Back',
+          'auth.ph.min8': 'at least 8 characters',
           'auth.nick': 'Nickname',
           'auth.ph.nickName': 'sprice',
           'auth.email': 'E-mail',
@@ -3113,7 +3277,7 @@
           'auth.ph.again': 'once more',
           'auth.stay': 'Stay signed in after closing the site',
           'auth.registerBtn': 'Create account',
-          'auth.note': 'The password is stored encrypted (PBKDF2-SHA256) right in this browser — nothing is sent to a server. The account is tied to this device.',
+          'auth.note': 'The password is stored encrypted (scrypt) on our server and is never sent in plain text. The account works on any device.',
           'auth.eyeShow': 'Show password',
           'auth.eyeHide': 'Hide password',
 
@@ -3132,29 +3296,61 @@
           'val.mail.empty': 'Without an e-mail you will not be able to sign in from another device.',
           'val.mail.bad': 'Looks like a typo. Example: mail@mail.ru',
           'val.pw.empty': 'Come up with a password.',
-          'val.pw.short': 'At least 6 characters.',
+          'val.pw.short': 'At least 8 characters.',
+          'val.pw.letter': 'Add at least one letter.',
+          'val.pw.digit': 'Add at least one digit.',
           'val.pw2.empty': 'Repeat the password.',
           'val.pw2.mismatch': 'The passwords do not match.',
           'err.login.noid': 'Enter your nickname or e-mail.',
           'err.login.nopw': 'Enter your password.',
-          'err.login.nofield': 'No such account.',
-          'err.login.notfound': 'Account not found. Check your keyboard layout — or sign up, it takes half a minute.',
+          'err.login.nofield': 'Wrong nickname or password.',
+          'err.login.notfound': 'Wrong nickname or password.',
           'err.login.pwfield': 'Wrong password.',
-          'err.login.badpw': 'Wrong password. If you forgot it, just create a new account with a different nickname.',
+          'err.login.badpw': 'Wrong nickname or password.',
           'err.reg.mailfield': 'This e-mail is already taken.',
           'err.reg.mail': 'This e-mail is already registered — try signing in.',
           'err.reg.nickfield': 'This nickname is already taken.',
           'err.reg.nick': 'Nickname taken. Pick another one or sign in to the existing account.',
-          'err.reg.storage': 'The browser will not let me save the account (private mode?). Open the site in a normal window and try again.',
+          'err.reg.storage': 'Could not create the account. Please try again.',
           'busy.checking': 'Checking',
           'busy.creating': 'Creating',
+          'busy.sending': 'Sending',
+          'busy.saving': 'Saving',
           'busy.done': 'Done',
 
           'toast.welcome': 'Welcome back, {name}!',
           'toast.created': 'Account created. Welcome, {name}!',
           'toast.loggedOut': 'Signed out, {name}',
           'toast.sessionEnded': 'Session ended',
-          'toast.orderSaved': 'Order “{name}” saved to your profile'
+          'toast.orderSaved': 'Order "{name}" saved to your profile',
+          'toast.needVerify': 'Confirm your email — the code was sent to {mail}',
+          'toast.resetDone': 'Password updated — sign in with the new one',
+
+          'code.leadVerify': 'We sent a code to <b>{mail}</b>. Enter it to confirm your email.',
+          'code.leadResetAsk': 'Enter the email of your account — we will send a reset code.',
+          'code.leadReset': 'A code was sent to <b>{mail}</b>. Enter it to set a new password.',
+          'code.leadNewPw': 'Code accepted. Choose a new password.',
+          'code.resend': 'Resend the code',
+          'code.resendIn': 'Resend in {sec}s',
+          'code.sent': 'Code sent again',
+          'code.checkSpam': 'No email? Check your spam folder.',
+          'code.sendBtn': 'Send the code',
+          'code.saveBtn': 'Save the password',
+          'code.backToLogin': '← Back to sign in',
+
+          'err.code.empty': 'Enter all 6 digits from the email.',
+          'err.code.wrong': 'Wrong code. Attempts left: {n}.',
+          'err.code.expired': 'The code has expired. Request a new one.',
+          'err.code.attempts': 'Too many attempts. Request a new code.',
+          'err.code.nocode': 'No active code. Request a new one.',
+          'err.code.tooSoon': 'Wait {sec}s before resending.',
+          'err.code.tooMany': 'Too many emails to this address. Try again later.',
+          'err.mail': 'Could not send the email. Try again later.',
+          'err.mail.resetHint': 'If that email is registered, the message is on its way.',
+          'err.network': 'Cannot reach the server. Check your connection and try again.',
+          'err.server': 'Something broke on the server. Try again later.',
+          'err.rate': 'Too many attempts. Wait a minute.',
+          'err.verified': 'Confirm your email first.'
         }
       };
 
@@ -3218,7 +3414,7 @@
         if (currentUser) renderAuth();
         if (profileModal && profileModal.classList.contains('active')) renderProfile();
         if (modal && modal.classList.contains('active')) updatePurchaseHint();
-        if (authFoot) switchAuth(authMode);
+        if (authModal && authModal.classList.contains('active')) refreshAuthLang();
       }
 
       function setLang(lang) {
@@ -3226,6 +3422,11 @@
         if (lang === LANG) return;
         applyLang(lang);
       }
+
+      /* кнопки RU / EN в шапке */
+      Array.prototype.slice.call(document.querySelectorAll('.lang-switch__btn')).forEach(function (btn) {
+        btn.addEventListener('click', function () { setLang(btn.dataset.lang); });
+      });
 
       var modal = document.getElementById('purchaseModal');
       var modalCard = document.getElementById('modalCard');
@@ -3509,17 +3710,14 @@
       });
 
       /* ═══════════════════════════════════════════════════════════════
-         АККАУНТЫ: регистрация, вход, «запомнить меня»
-         Хранилище — localStorage / sessionStorage этого браузера.
-         Пароль не лежит в открытом виде: PBKDF2-SHA256, 100 000 итераций,
-         своя соль на каждого пользователя.
+         АККАУНТЫ: регистрация, вход, подтверждение почты кодом
+         Всё состояние живёт на сервере (Postgres). Браузер держит только
+         httpOnly-cookie сессии, прочитать её из JS нельзя — токена в
+         localStorage нет, украсть его XSS-ом не получится.
          ═══════════════════════════════════════════════════════════════ */
-      var USERS_KEY = 'sprice-accounts-v1';
-      var SESSION_KEY = 'sprice-session-v1';
       var LAST_KEY = 'sprice-last-login-v1';
       var GREET_KEY = 'sprice-greeted';
-      var PBKDF2_ROUNDS = 100000;
-      var MAX_ORDERS = 40;
+      var RESEND_COOLDOWN = 60;
 
       var LS = null, SS = null;
       try { LS = window.localStorage; } catch (e) {}
@@ -3533,6 +3731,7 @@
       var userMenu = document.getElementById('userMenu');
       var userBtn = document.getElementById('userBtn');
       var toastsBox = document.getElementById('toasts');
+      var authTabs = document.querySelector('#authCard .auth__tabs');
 
       var tabLogin = document.getElementById('tabLogin');
       var tabReg = document.getElementById('tabReg');
@@ -3566,10 +3765,33 @@
       var profDays = document.getElementById('profDays');
       var profSpent = document.getElementById('profSpent');
       var profLast = document.getElementById('profLast');
+      var forgotBtn = document.getElementById('forgotBtn');
+
+      /* шаг подтверждения кодом */
+      var codeForm = document.getElementById('codeForm');
+      var codeLead = document.getElementById('codeLead');
+      var codeWrap = document.getElementById('codeCells');
+      var codeBox = document.getElementById('codeBox');
+      var newPwBox = document.getElementById('newPwBox');
+      var codeErr = document.getElementById('codeErr');
+      var codeErrText = document.getElementById('codeErrText');
+      var codeBtn = document.getElementById('codeBtn');
+      var codeResend = document.getElementById('codeResend');
+      var codeBack = document.getElementById('codeBack');
+      var fCodeMail = document.getElementById('fCodeMail');
+      var codeMail = document.getElementById('codeMail');
+      var newPw = document.getElementById('newPw');
+      var newPw2 = document.getElementById('newPw2');
+      var codeCells = Array.prototype.slice.call(document.querySelectorAll('[data-code-cell]'));
 
       var currentUser = null;
+      var userOrders = 0;
       var purchaseCtx = null;
       var authMode = 'login';
+      var codeCtx = null;
+      var codeState = 'code';
+      var resendTimer = null;
+      var resendLeft = 0;
 
       /* ── обёртки над хранилищами: не падают в приватном режиме ── */
       function storeGet(box, key) { if (!box) return null; try { return box.getItem(key); } catch (e) { return null; } }
@@ -3582,108 +3804,67 @@
       }
       function lsGet(k) { return storeGet(LS, k); }
       function lsSet(k, v) { return storeSet(LS, k, v); }
-      function lsDel(k) { storeDel(LS, k); }
       function ssGet(k) { return storeGet(SS, k); }
       function ssSet(k, v) { return storeSet(SS, k, v); }
-      function ssDel(k) { storeDel(SS, k); }
 
-      /* ── крипто ── */
-      function bytesToHex(buf) {
-        var b = new Uint8Array(buf), out = '', i;
-        for (i = 0; i < b.length; i++) out += ('0' + b[i].toString(16)).slice(-2);
-        return out;
-      }
-      function hexToBytes(hex) {
-        var n = Math.floor(hex.length / 2), out = new Uint8Array(n), i;
-        for (i = 0; i < n; i++) out[i] = parseInt(hex.substr(i * 2, 2), 16);
-        return out;
-      }
-      function randomSalt() {
-        var a = new Uint8Array(16), i;
-        var c = window.crypto || window.msCrypto;
-        if (c && c.getRandomValues) { c.getRandomValues(a); }
-        else { for (i = 0; i < a.length; i++) a[i] = Math.floor(Math.random() * 256); }
-        return bytesToHex(a.buffer);
-      }
-      /* Резервный хеш — на случай, если SubtleCrypto недоступен (незащищённый контекст) */
-      function weakHash(pw, salt, rounds) {
-        var h1 = 0x811c9dc5, h2 = 0x01000193, h3 = 0x9e3779b9, h4 = 0x85ebca6b, r, i, c;
-        var s = salt + '|' + pw;
-        for (r = 0; r < rounds; r++) {
-          for (i = 0; i < s.length; i++) {
-            c = s.charCodeAt(i);
-            h1 = Math.imul(h1 ^ c, 16777619) >>> 0;
-            h2 = Math.imul((h2 + c + r) >>> 0, 2246822507) >>> 0;
-            h3 = Math.imul(h3 ^ (c + r), 3266489909) >>> 0;
-            h4 = (h4 + (h1 ^ h2 ^ h3)) >>> 0;
-            h4 = (h4 ^ (h4 >>> 16)) >>> 0;
-          }
-          s = (h1 ^ h2 ^ h3 ^ h4).toString(16);
+      /* ── обращения к серверу ── */
+      function api(path, options) {
+        options = options || {};
+        var init = {
+          method: options.method || 'GET',
+          credentials: 'same-origin',
+          headers: { 'Accept': 'application/json' }
+        };
+        if (options.body !== undefined) {
+          init.headers['Content-Type'] = 'application/json';
+          init.body = JSON.stringify(options.body);
         }
-        return (h1 >>> 0).toString(16) + (h2 >>> 0).toString(16) + (h3 >>> 0).toString(16) + (h4 >>> 0).toString(16);
-      }
-      function hashPassword(pw, saltHex, algo, rounds) {
-        rounds = rounds || PBKDF2_ROUNDS;
-        var weak = function () { return { algo: 'weak', rounds: rounds, hash: weakHash(pw, saltHex, 3000) }; };
-        if (algo === 'weak') return Promise.resolve(weak());
-        var c = window.crypto || window.msCrypto;
-        var subtle = c && (c.subtle || c.webkitSubtle);
-        if (!subtle || !subtle.importKey || typeof TextEncoder === 'undefined') return Promise.resolve(weak());
-        try {
-          return subtle.importKey('raw', new TextEncoder().encode(pw), { name: 'PBKDF2' }, false, ['deriveBits'])
-            .then(function (key) {
-              return subtle.deriveBits({ name: 'PBKDF2', salt: hexToBytes(saltHex), iterations: rounds, hash: 'SHA-256' }, key, 256);
-            })
-            .then(function (bits) { return { algo: 'pbkdf2', rounds: rounds, hash: bytesToHex(bits) }; })
-            .catch(function () { return weak(); });
-        } catch (e) { return Promise.resolve(weak()); }
-      }
-      /* сравнение без раннего выхода */
-      function sameHash(a, b) {
-        if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false;
-        var diff = 0, i;
-        for (i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-        return diff === 0;
+        return fetch(path, init).then(function (res) {
+          return res.text().then(function (text) {
+            var data = null;
+            try { data = text ? JSON.parse(text) : null; } catch (e) { data = null; }
+            if (!res.ok) {
+              var err = new Error((data && data.error) || 'server_error');
+              err.code = (data && data.error) || 'server_error';
+              err.status = res.status;
+              err.data = data || {};
+              throw err;
+            }
+            return data || {};
+          });
+        }, function () {
+          var err = new Error('network');
+          err.code = 'network';
+          err.data = {};
+          throw err;
+        });
       }
 
-      /* ── аккаунты ── */
-      function loadUsers() {
-        var v = parseJSON(lsGet(USERS_KEY), []);
-        return Object.prototype.toString.call(v) === '[object Array]' ? v : [];
-      }
-      function saveUsers(list) { return lsSet(USERS_KEY, JSON.stringify(list)); }
-      function findUser(login) {
-        var key = String(login || '').trim().toLowerCase(), list = loadUsers(), i;
-        if (!key) return null;
-        for (i = 0; i < list.length; i++) {
-          if (String(list[i].name).toLowerCase() === key) return list[i];
-          if (String(list[i].email).toLowerCase() === key) return list[i];
-        }
-        return null;
-      }
-      function persistUser(user) {
-        var list = loadUsers(), found = false, i;
-        for (i = 0; i < list.length; i++) {
-          if (list[i].id === user.id) { list[i] = user; found = true; break; }
-        }
-        if (!found) list.push(user);
-        return saveUsers(list);
-      }
-      function newId() { return 'u' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
-
-      /* ── сессия: «запомнить меня» = localStorage, иначе sessionStorage ── */
-      function writeSession(user, remember) {
-        var payload = JSON.stringify({ id: user.id, at: Date.now(), remember: !!remember });
-        if (remember) { lsSet(SESSION_KEY, payload); ssDel(SESSION_KEY); }
-        else { ssSet(SESSION_KEY, payload); lsDel(SESSION_KEY); }
-      }
-      function readSession() {
-        var s = parseJSON(lsGet(SESSION_KEY), null) || parseJSON(ssGet(SESSION_KEY), null);
-        return (s && s.id) ? s : null;
-      }
-      function clearSession() { lsDel(SESSION_KEY); ssDel(SESSION_KEY); }
-      function rememberLast(user) {
-        lsSet(LAST_KEY, JSON.stringify({ login: user.name, email: user.email, at: Date.now() }));
+      /* Код ошибки сервера → понятная фраза на текущем языке */
+      function apiMessage(err) {
+        var c = (err && err.code) || 'server_error';
+        var d = (err && err.data) || {};
+        if (c === 'network') return t('err.network');
+        if (c === 'rate_limited') return t('err.rate');
+        if (c === 'email_taken') return t('err.reg.mail');
+        if (c === 'nickname_taken') return t('err.reg.nick');
+        if (c === 'nickname_invalid') return t('val.name.chars');
+        if (c === 'email_invalid') return t('val.mail.bad');
+        if (c === 'password_short' || c === 'password_long') return t('val.pw.short');
+        if (c === 'password_noletter') return t('val.pw.letter');
+        if (c === 'password_nodigit') return t('val.pw.digit');
+        if (c === 'invalid_credentials') return t('err.login.notfound');
+        if (c === 'not_verified') return t('err.verified');
+        if (c === 'unauthorized') return t('err.login.notfound');
+        if (c === 'no_code') return t('err.code.nocode');
+        if (c === 'code_expired') return t('err.code.expired');
+        if (c === 'code_wrong') return t('err.code.wrong', { n: (d.attemptsLeft != null ? d.attemptsLeft : 0) });
+        if (c === 'code_attempts') return t('err.code.attempts');
+        if (c === 'code_empty') return t('err.code.empty');
+        if (c === 'too_soon') return t('err.code.tooSoon', { sec: d.retryAfter || RESEND_COOLDOWN });
+        if (c === 'too_many_codes') return t('err.code.tooMany');
+        if (c === 'mail_failed') return t('err.mail');
+        return t('err.server');
       }
 
       /* ── проверки полей ── */
@@ -3704,10 +3885,14 @@
         if (!RE_MAIL.test(v)) return t('val.mail.bad');
         return '';
       }
+      /* Требования те же, что на сервере: 8 символов, буква и цифра.
+         Если фронт пропустит слабее — пользователь получит непонятную ошибку из API. */
       function checkPw(v) {
         v = String(v || '');
         if (!v) return t('val.pw.empty');
-        if (v.length < 6) return t('val.pw.short');
+        if (v.length < 8) return t('val.pw.short');
+        if (!/[A-Za-zА-Яа-яЁё]/.test(v)) return t('val.pw.letter');
+        if (!/\d/.test(v)) return t('val.pw.digit');
         return '';
       }
       function checkPw2(a, b) {
@@ -3718,8 +3903,8 @@
       function pwLevel(pw) {
         if (!pw) return 0;
         var s = 0;
-        if (pw.length >= 6) s++;
-        if (pw.length >= 10) s++;
+        if (pw.length >= 8) s++;
+        if (pw.length >= 12) s++;
         if (/[A-ZА-ЯЁ]/.test(pw) && /[a-zа-яё]/.test(pw)) s++;
         if (/\d/.test(pw)) s++;
         if (/[^A-Za-zА-Яа-яЁё0-9]/.test(pw)) s++;
@@ -3727,7 +3912,7 @@
       }
 
       function markField(fieldId, msgId, err) {
-        var wrap = document.getElementById(fieldId);
+        var wrap = fieldId ? document.getElementById(fieldId) : null;
         var msg = document.getElementById(msgId);
         if (wrap) wrap.classList.toggle('bad', !!err);
         if (msg) msg.textContent = err || '';
@@ -3775,6 +3960,15 @@
         var s = String(name || '').trim();
         return s ? s.charAt(0).toUpperCase() : '?';
       }
+      function setUser(u) {
+        currentUser = u ? {
+          id: u.id,
+          name: u.nickname,
+          email: u.email,
+          verified: !!u.verified,
+          created: u.createdAt ? new Date(u.createdAt).getTime() : Date.now()
+        } : null;
+      }
       function renderAuth() {
         var logged = !!currentUser;
         if (authOpenBtn) authOpenBtn.hidden = logged;
@@ -3784,7 +3978,7 @@
         document.getElementById('userNm').textContent = currentUser.name;
         document.getElementById('dropName').textContent = currentUser.name;
         document.getElementById('dropMail').textContent = currentUser.email;
-        document.getElementById('dropOrders').textContent = String((currentUser.orders || []).length);
+        document.getElementById('dropOrders').textContent = String(userOrders);
       }
       function openUserMenu() {
         if (!userMenu) return;
@@ -3810,22 +4004,8 @@
       }
       function closeAuth() {
         if (authModal) authModal.classList.remove('active');
+        stopResendCountdown();
         updateBodyLock();
-      }
-      function switchAuth(mode) {
-        authMode = (mode === 'reg') ? 'reg' : 'login';
-        var isReg = authMode === 'reg';
-        tabLogin.classList.toggle('active', !isReg);
-        tabReg.classList.toggle('active', isReg);
-        tabLogin.setAttribute('aria-selected', String(!isReg));
-        tabReg.setAttribute('aria-selected', String(isReg));
-        authTabInd.style.transform = isReg ? 'translateX(calc(100% + 4px))' : 'translateX(0)';
-        loginForm.hidden = isReg;
-        regForm.hidden = !isReg;
-        authSub.textContent = t(isReg ? 'auth.subReg' : 'auth.subLogin');
-        authFoot.innerHTML = tHtml(isReg ? 'auth.footReg' : 'auth.footLogin');
-        showErr(loginErr, loginErrText, '');
-        showErr(regErr, regErrText, '');
       }
       function openProfile() {
         if (!currentUser) return;
@@ -3844,69 +4024,215 @@
         return null;
       }
 
+      /* ── панели модалки: вход / регистрация / код ── */
+      function showAuthPanel(panel) {
+        var isLogin = panel === 'login', isReg = panel === 'reg', isCode = panel === 'code';
+        loginForm.hidden = !isLogin;
+        regForm.hidden = !isReg;
+        codeForm.hidden = !isCode;
+        if (authTabs) authTabs.hidden = isCode;
+        tabLogin.classList.toggle('active', isLogin);
+        tabReg.classList.toggle('active', isReg);
+        tabLogin.setAttribute('aria-selected', String(isLogin));
+        tabReg.setAttribute('aria-selected', String(isReg));
+        authTabInd.style.transform = isReg ? 'translateX(calc(100% + 4px))' : 'translateX(0)';
+        authSub.textContent = t(isCode ? 'auth.subCode' : (isReg ? 'auth.subReg' : 'auth.subLogin'));
+        authFoot.hidden = isCode;
+        authFoot.innerHTML = isCode ? '' : tHtml(isReg ? 'auth.footReg' : 'auth.footLogin');
+        showErr(loginErr, loginErrText, '');
+        showErr(regErr, regErrText, '');
+        showErr(codeErr, codeErrText, '');
+      }
+      function switchAuth(mode) {
+        authMode = (mode === 'reg') ? 'reg' : 'login';
+        codeCtx = null;
+        stopResendCountdown();
+        showAuthPanel(authMode);
+      }
+      /* Вызывается из applyLang при смене языка — не сбрасывает шаг с кодом */
+      function refreshAuthLang() {
+        if (codeForm && !codeForm.hidden) { setCodeState(codeState); return; }
+        showAuthPanel(authMode);
+      }
+
+      /* ── шаг подтверждения кодом ── */
+      function openCodeStep(ctx, state) {
+        codeCtx = ctx || {};
+        codeCtx.remember = ctx && ctx.remember !== undefined ? !!ctx.remember : true;
+        clearCode();
+        newPw.value = '';
+        newPw2.value = '';
+        markField('fNewPw', 'mNewPw', '');
+        markField('fNewPw2', 'mNewPw2', '');
+        /* ВАЖНО: показать саму панель кода. Без этого codeForm остаётся hidden,
+           а на экране висит форма регистрации/входа — шаг кода не появляется. */
+        showAuthPanel('code');
+        setCodeState(state || 'code');
+        if (authModal) authModal.classList.add('active');
+        updateBodyLock();
+        startResendCountdown(RESEND_COOLDOWN);
+        setTimeout(function () { if (codeState === 'code') focusCell(0); else if (codeState === 'email') { try { codeMail.focus(); } catch (e) {} } }, 160);
+      }
+
+      function setCodeState(state) {
+        codeState = state;
+        var isEmail = state === 'email', isCode = state === 'code', isNew = state === 'newpw';
+        fCodeMail.hidden = !isEmail;
+        codeBox.hidden = !isCode;
+        newPwBox.hidden = !isNew;
+        codeResend.hidden = !isCode;
+
+        var mail = (codeCtx && codeCtx.email) || '';
+        if (isEmail) {
+          codeLead.innerHTML = t('code.leadResetAsk');
+        } else if (isCode) {
+          codeLead.innerHTML = t(codeCtx && codeCtx.purpose === 'reset' ? 'code.leadReset' : 'code.leadVerify', { mail: mail });
+          codeLead.innerHTML += '<br><span class="auth__code-hint">' + t('code.checkSpam') + '</span>';
+        } else {
+          codeLead.innerHTML = t('code.leadNewPw');
+        }
+
+        codeBtn.textContent = isEmail ? t('code.sendBtn') : (isNew ? t('code.saveBtn') : t('auth.codeBtn'));
+        codeBack.textContent = isCode ? (codeCtx && codeCtx.purpose === 'reset' ? t('auth.codeBack') : t('code.backToLogin')) : t('auth.codeBack');
+        codeBack.dataset.text = codeBack.textContent;
+        paintResend();
+        showErr(codeErr, codeErrText, '');
+      }
+
+      function codeValue() {
+        return codeCells.map(function (c) { return c.value; }).join('');
+      }
+      function clearCode() {
+        codeCells.forEach(function (c) { c.value = ''; c.classList.remove('filled'); });
+        if (codeWrap) codeWrap.classList.remove('bad');
+      }
+      function focusCell(i) {
+        if (codeCells[i]) { try { codeCells[i].focus(); } catch (e) {} }
+      }
+      function codeShake() {
+        if (!codeWrap) return;
+        codeWrap.classList.add('shake');
+        setTimeout(function () { codeWrap.classList.remove('shake'); }, 460);
+      }
+
+      function paintResend() {
+        if (!codeResend) return;
+        if (resendLeft > 0) {
+          codeResend.disabled = true;
+          codeResend.textContent = t('code.resendIn', { sec: resendLeft });
+        } else {
+          codeResend.disabled = false;
+          codeResend.textContent = t('code.resend');
+        }
+      }
+      function startResendCountdown(sec) {
+        stopResendCountdown();
+        resendLeft = Math.max(0, Number(sec) || 0);
+        paintResend();
+        if (!resendLeft) return;
+        resendTimer = setInterval(function () {
+          resendLeft -= 1;
+          paintResend();
+          if (resendLeft <= 0) stopResendCountdown();
+        }, 1000);
+      }
+      function stopResendCountdown() {
+        if (resendTimer) clearInterval(resendTimer);
+        resendTimer = null;
+        resendLeft = 0;
+      }
+
+      /* Ошибка на шаге кода: трясём ячейки, чистим ввод, показываем текст */
+      function handleCodeError(err) {
+        var c = err && err.code;
+        if (c === 'code_wrong' || c === 'code_attempts' || c === 'code_expired' || c === 'no_code') {
+          if (codeWrap) {
+            codeWrap.classList.add('bad');
+            setTimeout(function () { codeWrap.classList.remove('bad'); }, 1300);
+          }
+          codeShake();
+          clearCode();
+          focusCell(0);
+        }
+        if (c === 'too_soon' && err.data && err.data.retryAfter) startResendCountdown(err.data.retryAfter);
+        showErr(codeErr, codeErrText, apiMessage(err));
+      }
+
       /* ── профиль ── */
       function fmtDate(ts) {
+        if (!ts) return '';
         try { return new Date(ts).toLocaleDateString(curLoc(), { day: 'numeric', month: 'short', year: 'numeric' }); }
         catch (e) { return ''; }
       }
-      function money(v) {
-        var n = parseInt(String(v == null ? '' : v).replace(/[^0-9]/g, ''), 10);
-        return isNaN(n) ? '0 ₽' : (n.toLocaleString(curLoc()) + ' ₽');
-      }
       function renderProfile() {
         if (!currentUser) return;
-        var orders = currentUser.orders || [], i, sum = 0;
         profAva.textContent = firstLetter(currentUser.name);
         profName.textContent = currentUser.name;
         profMail.textContent = currentUser.email;
-        profOrders.textContent = String(orders.length);
-        profDays.textContent = String(Math.max(1, Math.ceil((Date.now() - (currentUser.created || Date.now())) / 86400000)));
-        for (i = 0; i < orders.length; i++) sum += parseInt(String(orders[i].price || '').replace(/[^0-9]/g, ''), 10) || 0;
-        profSpent.textContent = sum ? (sum.toLocaleString(curLoc()) + ' ₽') : '0 ₽';
-        profLast.textContent = orders.length ? t('profile.updated', { date: fmtDate(orders[0].at) }) : '';
+        profOrders.textContent = String(userOrders);
+        profDays.textContent = '1';
+        profSpent.textContent = '0 ₽';
+        profLast.textContent = '';
+        orderList.innerHTML = '<div class="orders__empty">' + t('profile.empty') + '</div>';
 
-        orderList.innerHTML = '';
-        if (!orders.length) {
-          var empty = document.createElement('div');
-          empty.className = 'orders__empty';
-          empty.innerHTML = t('profile.empty');
-          orderList.appendChild(empty);
-          return;
-        }
-        orders.forEach(function (o, idx) {
-          var el = document.createElement('div');
-          el.className = 'order';
-          el.style.animationDelay = (idx * 55) + 'ms';
-          el.innerHTML = '<span class="order__ico"><svg viewBox="0 0 24 24">' + (ICONS[o.id] || '') + '</svg></span>' +
-                         '<span class="order__b"><b></b><span></span></span>' +
-                         '<span class="order__p"></span>';
-          var po = pd(o.id) || {};
-          var planName = (po.plans && po.plans[o.planIdx]) ? po.plans[o.planIdx].duration : (o.plan || '');
-          el.querySelector('.order__b b').textContent = po.name || o.name || o.id;
-          el.querySelector('.order__b span').textContent = (planName ? (planName + ' · ') : '') + fmtDate(o.at);
-          el.querySelector('.order__p').textContent = o.price || po.price || '';
-          orderList.appendChild(el);
+        api('/api/profile?lang=' + LANG).then(function (res) {
+          if (!currentUser) return;
+          var st = res.stats || {};
+          var orders = res.orders || [];
+          userOrders = Number(st.orders || orders.length || 0);
+          profOrders.textContent = String(userOrders);
+          profDays.textContent = String(st.days || 1);
+          profSpent.textContent = st.spentText || '0 ₽';
+          profLast.textContent = orders.length ? t('profile.updated', { date: fmtDate(orders[0].createdAt) }) : '';
+          renderAuth();
+
+          orderList.innerHTML = '';
+          if (!orders.length) {
+            var empty = document.createElement('div');
+            empty.className = 'orders__empty';
+            empty.innerHTML = t('profile.empty');
+            orderList.appendChild(empty);
+            return;
+          }
+          orders.forEach(function (o, idx) {
+            var el = document.createElement('div');
+            el.className = 'order';
+            el.style.animationDelay = (idx * 55) + 'ms';
+            el.innerHTML = '<span class="order__ico"><svg viewBox="0 0 24 24">' + (ICONS[o.productId] || '') + '</svg></span>' +
+                           '<span class="order__b"><b></b><span></span></span>' +
+                           '<span class="order__p"></span>';
+            el.querySelector('.order__b b').textContent = o.productName || o.productId;
+            el.querySelector('.order__b span').textContent = (o.planDuration ? (o.planDuration + ' · ') : '') + fmtDate(o.createdAt);
+            el.querySelector('.order__p').textContent = o.priceText || '';
+            if (o.status === 'cancelled') el.classList.add('order--off');
+            orderList.appendChild(el);
+          });
+        }).catch(function (err) {
+          showErr(null, null, '');
+          orderList.innerHTML = '<div class="orders__empty">' + apiMessage(err) + '</div>';
         });
       }
+
+      function loadOrderCount() {
+        if (!currentUser) { userOrders = 0; renderAuth(); return Promise.resolve(); }
+        return api('/api/orders?lang=' + LANG).then(function (res) {
+          userOrders = (res.orders || []).length;
+          renderAuth();
+        }).catch(function () {});
+      }
+
+      /* Заказ пишется на сервер ДО ухода на оплату. Цену считает сервер. */
       function recordOrder(productId) {
-        if (!currentUser) return false;
-        var p = pd(productId);
-        if (!p) return false;
-        var orders = currentUser.orders || (currentUser.orders = []);
-        var last = orders[0];
+        if (!currentUser) return Promise.resolve(false);
         var planIdx = (purchaseCtx && purchaseCtx.plan) ? purchaseCtx.plan.idx : 0;
-        if (last && last.id === productId && last.planIdx === planIdx && (Date.now() - last.at) < 600000) return false;
-        orders.unshift({
-          id: productId,
-          planIdx: planIdx,
-          price: (purchaseCtx && purchaseCtx.plan && purchaseCtx.plan.price) || p.plans[0].price,
-          at: Date.now()
-        });
-        if (orders.length > MAX_ORDERS) orders.length = MAX_ORDERS;
-        persistUser(currentUser);
-        renderAuth();
-        return true;
+        return api('/api/orders', {
+          method: 'POST',
+          body: { productId: productId, planIdx: planIdx, locale: LANG }
+        }).then(function () {
+          return loadOrderCount().then(function () { return true; });
+        }).catch(function () { return false; });
       }
+
       function updatePurchaseHint() {
         if (!modalAuthHint || !modalAuthHintText) return;
         modalAuthHint.hidden = false;
@@ -3924,40 +4250,52 @@
       }
 
       /* ── вход / выход ── */
-      function startSession(user, remember, greeting) {
-        clearSession();
-        writeSession(user, remember);
-        rememberLast(user);
-        currentUser = user;
+      function startSession(u, greeting) {
+        setUser(u);
+        rememberLast({ login: u.nickname, email: u.email });
+        codeCtx = null;
+        stopResendCountdown();
         renderAuth();
         closeAuth();
-        toast(greeting || t('toast.welcome', { name: user.name }), 'ok');
+        toast(greeting || t('toast.welcome', { name: u.nickname }), 'ok');
+        loadOrderCount();
       }
       function logout(silent) {
         var nm = currentUser ? currentUser.name : '';
-        clearSession();
-        currentUser = null;
+        api('/api/auth/logout', { method: 'POST' }).catch(function () {});
+        setUser(null);
+        userOrders = 0;
         renderAuth();
         closeProfile();
         closeUserMenu();
+        prefillLogin();
         if (!silent) toast(nm ? t('toast.loggedOut', { name: nm }) : t('toast.sessionEnded'), 'info');
+      }
+      function rememberLast(u) {
+        lsSet(LAST_KEY, JSON.stringify({ login: u.login, email: u.email, at: Date.now() }));
       }
       function prefillLogin() {
         var last = parseJSON(lsGet(LAST_KEY), null);
         if (last && last.login && !loginId.value) loginId.value = last.login;
       }
       function restoreSession() {
-        var s = readSession();
-        if (!s) { renderAuth(); prefillLogin(); return; }
-        var list = loadUsers(), found = null, i;
-        for (i = 0; i < list.length; i++) { if (list[i].id === s.id) { found = list[i]; break; } }
-        if (!found) { clearSession(); renderAuth(); prefillLogin(); return; }
-        currentUser = found;
-        renderAuth();
-        if (!ssGet(GREET_KEY)) {
-          ssSet(GREET_KEY, '1');
-          setTimeout(function () { toast(t('toast.welcome', { name: found.name }), 'ok'); }, 1500);
-        }
+        api('/api/auth/me').then(function (res) {
+          if (res && res.user) {
+            setUser(res.user);
+            renderAuth();
+            loadOrderCount();
+            if (!ssGet(GREET_KEY)) {
+              ssSet(GREET_KEY, '1');
+              setTimeout(function () { toast(t('toast.welcome', { name: res.user.nickname }), 'ok'); }, 1500);
+            }
+          } else {
+            renderAuth();
+          }
+          prefillLogin();
+        }).catch(function () {
+          renderAuth();
+          prefillLogin();
+        });
       }
 
       /* ── обработчики ── */
@@ -3968,6 +4306,7 @@
       if (profileModal) profileModal.addEventListener('click', function (e) { if (e.target === profileModal) closeProfile(); });
       tabLogin.addEventListener('click', function () { switchAuth('login'); });
       tabReg.addEventListener('click', function () { switchAuth('reg'); });
+      if (forgotBtn) forgotBtn.addEventListener('click', function () { openCodeStep({ purpose: 'reset', email: '', nickname: '' }, 'email'); });
 
       authFoot.addEventListener('click', function (e) {
         var b = e.target.closest ? e.target.closest('[data-switch]') : null;
@@ -4002,9 +4341,77 @@
       if (modalPay) {
         modalPay.addEventListener('click', function () {
           if (!currentUser || !purchaseCtx) return;
-          if (recordOrder(purchaseCtx.id)) {
-            toast(t('toast.orderSaved', { name: (pd(purchaseCtx.id) || {}).name || purchaseCtx.name }), 'ok');
+          recordOrder(purchaseCtx.id).then(function (saved) {
+            if (saved) {
+              toast(t('toast.orderSaved', { name: (pd(purchaseCtx.id) || {}).name || purchaseCtx.name }), 'ok');
+            }
+          });
+        });
+      }
+
+      /* ── поведение ячеек кода ── */
+      codeCells.forEach(function (cell, i) {
+        cell.addEventListener('input', function () {
+          var digits = cell.value.replace(/\D/g, '');
+          cell.value = digits.slice(-1);
+          cell.classList.toggle('filled', !!cell.value);
+          if (cell.value && i < codeCells.length - 1) focusCell(i + 1);
+          if (codeValue().length === codeCells.length) {
+            setTimeout(function () {
+              if (codeState === 'code' && codeValue().length === codeCells.length) {
+                codeForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+              }
+            }, 90);
           }
+        });
+        cell.addEventListener('keydown', function (e) {
+          if (e.key === 'Backspace' && !cell.value && i > 0) {
+            e.preventDefault();
+            codeCells[i - 1].value = '';
+            codeCells[i - 1].classList.remove('filled');
+            focusCell(i - 1);
+          }
+          if (e.key === 'ArrowLeft' && i > 0) { e.preventDefault(); focusCell(i - 1); }
+          if (e.key === 'ArrowRight' && i < codeCells.length - 1) { e.preventDefault(); focusCell(i + 1); }
+        });
+        cell.addEventListener('paste', function (e) {
+          e.preventDefault();
+          var text = (e.clipboardData || window.clipboardData).getData('text') || '';
+          var digits = text.replace(/\D/g, '').slice(0, codeCells.length).split('');
+          digits.forEach(function (d, k) {
+            if (codeCells[k]) { codeCells[k].value = d; codeCells[k].classList.add('filled'); }
+          });
+          focusCell(Math.min(digits.length, codeCells.length - 1));
+        });
+        cell.addEventListener('focus', function () { try { cell.select(); } catch (e) {} });
+      });
+
+      if (codeBack) {
+        codeBack.addEventListener('click', function () {
+          showErr(codeErr, codeErrText, '');
+          if (codeState === 'newpw') { setCodeState('code'); return; }
+          if (codeState === 'code' && codeCtx && codeCtx.purpose === 'reset') { setCodeState('email'); return; }
+          switchAuth(authMode);
+        });
+      }
+
+      if (codeResend) {
+        codeResend.addEventListener('click', function () {
+          if (!codeCtx || !codeCtx.email || resendLeft > 0) return;
+          showErr(codeErr, codeErrText, '');
+          api('/api/auth/resend', {
+            method: 'POST',
+            body: { email: codeCtx.email, purpose: codeCtx.purpose || 'verify', locale: LANG }
+          }).then(function (res) {
+            if (res && res.nickname) codeCtx.nickname = res.nickname;
+            clearCode();
+            focusCell(0);
+            startResendCountdown(RESEND_COOLDOWN);
+            toast(t('code.sent'), 'ok');
+          }).catch(function (err) {
+            if (err.code === 'too_soon' && err.data && err.data.retryAfter) startResendCountdown(err.data.retryAfter);
+            showErr(codeErr, codeErrText, apiMessage(err));
+          });
         });
       }
 
@@ -4026,24 +4433,29 @@
         var okPw = markField('fLoginPw', 'mLoginPw', pw ? '' : t('err.login.nopw'));
         if (!okId || !okPw) return;
 
-        var user = findUser(login);
-        if (!user) {
-          markField('fLoginId', 'mLoginId', t('err.login.nofield'));
-          showErr(loginErr, loginErrText, t('err.login.notfound'));
-          return;
-        }
         busy(loginBtn, true, t('busy.checking'));
-        hashPassword(pw, user.salt, user.algo, user.rounds).then(function (res) {
+        api('/api/auth/login', {
+          method: 'POST',
+          body: { login: login, password: pw, remember: loginRemember.checked, locale: LANG }
+        }).then(function (res) {
           busy(loginBtn, false);
-          if (!sameHash(res.hash, user.hash)) {
-            markField('fLoginPw', 'mLoginPw', t('err.login.pwfield'));
-            showErr(loginErr, loginErrText, t('err.login.badpw'));
+          if (res.needCode) {
+            loginPw.value = '';
+            openCodeStep({
+              purpose: res.purpose || 'verify',
+              email: res.email,
+              nickname: res.nickname,
+              remember: loginRemember.checked
+            }, 'code');
+            toast(t('toast.needVerify', { mail: res.email }), 'info');
             return;
           }
-          user.last = Date.now();
-          if (res.algo !== user.algo) { user.algo = res.algo; user.rounds = res.rounds; user.hash = res.hash; }
-          persistUser(user);
-          startSession(user, loginRemember.checked, t('toast.welcome', { name: user.name }));
+          loginPw.value = '';
+          startSession(res.user, t('toast.welcome', { name: res.user.nickname }));
+        }).catch(function (err) {
+          busy(loginBtn, false);
+          if (err.code === 'invalid_credentials') markField('fLoginPw', 'mLoginPw', t('err.login.pwfield'));
+          showErr(loginErr, loginErrText, apiMessage(err));
         });
       });
 
@@ -4066,47 +4478,120 @@
           if (bad) { try { bad.focus(); } catch (err) {} }
           return;
         }
-        if (findUser(mail)) {
-          markField('fRegMail', 'mRegMail', t('err.reg.mailfield'));
-          showErr(regErr, regErrText, t('err.reg.mail'));
-          return;
-        }
-        if (findUser(name)) {
-          markField('fRegName', 'mRegName', t('err.reg.nickfield'));
-          showErr(regErr, regErrText, t('err.reg.nick'));
-          return;
-        }
 
         busy(regBtn, true, t('busy.creating'));
-        var salt = randomSalt();
-        hashPassword(pw, salt, null, PBKDF2_ROUNDS).then(function (res) {
-          var user = {
-            id: newId(),
-            name: name,
-            email: mail,
-            salt: salt,
-            algo: res.algo,
-            rounds: res.rounds,
-            hash: res.hash,
-            created: Date.now(),
-            last: Date.now(),
-            orders: []
-          };
-          if (!persistUser(user)) {
-            busy(regBtn, false);
-            showErr(regErr, regErrText, t('err.reg.storage'));
-            return;
-          }
+        api('/api/auth/register', {
+          method: 'POST',
+          body: { nickname: name, email: mail, password: pw, locale: LANG }
+        }).then(function (res) {
           busy(regBtn, false);
           regForm.reset();
           pwMeter.dataset.lvl = '0';
-          startSession(user, regRemember.checked, t('toast.created', { name: user.name }));
+          openCodeStep({
+            purpose: 'verify',
+            email: res.email,
+            nickname: res.nickname,
+            remember: regRemember.checked
+          }, 'code');
+          toast(t('toast.needVerify', { mail: res.email }), 'info');
+        }).catch(function (err) {
+          busy(regBtn, false);
+          if (err.code === 'email_taken') markField('fRegMail', 'mRegMail', t('err.reg.mailfield'));
+          if (err.code === 'nickname_taken') markField('fRegName', 'mRegName', t('err.reg.nickfield'));
+          showErr(regErr, regErrText, apiMessage(err));
         });
       });
 
-      /* переключатель языка */
-      Array.prototype.slice.call(document.querySelectorAll('.lang-switch__btn')).forEach(function (b) {
-        b.addEventListener('click', function () { setLang(b.dataset.lang); });
+      /* ── ШАГ КОДА: запрос сброса / подтверждение / новый пароль ── */
+      codeForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        showErr(codeErr, codeErrText, '');
+        if (!codeCtx) return;
+
+        /* 1. запрос кода для сброса пароля — спрашиваем почту */
+        if (codeState === 'email') {
+          var mail = codeMail.value.trim().toLowerCase();
+          var eMail = checkMail(mail);
+          markField('fCodeMail', 'mCodeMail', eMail);
+          if (eMail) return;
+          busy(codeBtn, true, t('busy.sending'));
+          api('/api/auth/reset/request', { method: 'POST', body: { email: mail, locale: LANG } })
+            .then(function (res) {
+              busy(codeBtn, false);
+              codeCtx.email = (res && res.email) || mail;
+              codeCtx.purpose = 'reset';
+              clearCode();
+              setCodeState('code');
+              startResendCountdown(RESEND_COOLDOWN);
+              focusCell(0);
+            })
+            .catch(function (err) {
+              busy(codeBtn, false);
+              showErr(codeErr, codeErrText, apiMessage(err));
+            });
+          return;
+        }
+
+        /* 2. ввод кода */
+        if (codeState === 'code') {
+          var code = codeValue();
+          if (code.length < codeCells.length) {
+            markField(null, 'mCode', t('err.code.empty'));
+            codeShake();
+            focusCell(code.length);
+            return;
+          }
+          markField(null, 'mCode', '');
+          if (codeCtx.purpose === 'reset') {
+            codeCtx.code = code;
+            setCodeState('newpw');
+            setTimeout(function () { try { newPw.focus(); } catch (err) {} }, 150);
+            return;
+          }
+          busy(codeBtn, true, t('busy.checking'));
+          api('/api/auth/verify', {
+            method: 'POST',
+            body: { email: codeCtx.email, code: code, remember: codeCtx.remember }
+          }).then(function (res) {
+            busy(codeBtn, false);
+            startSession(res.user, t('toast.created', { name: res.user.nickname }));
+          }).catch(function (err) {
+            busy(codeBtn, false);
+            handleCodeError(err);
+          });
+          return;
+        }
+
+        /* 3. новый пароль после верного кода */
+        if (codeState === 'newpw') {
+          var p1 = newPw.value, p2 = newPw2.value;
+          var eP1 = checkPw(p1), eP2 = checkPw2(p1, p2);
+          markField('fNewPw', 'mNewPw', eP1);
+          markField('fNewPw2', 'mNewPw2', eP2);
+          if (eP1 || eP2) return;
+          busy(codeBtn, true, t('busy.saving'));
+          api('/api/auth/reset/confirm', {
+            method: 'POST',
+            body: { email: codeCtx.email, code: codeCtx.code, password: p1 }
+          }).then(function () {
+            busy(codeBtn, false);
+            newPw.value = '';
+            newPw2.value = '';
+            switchAuth('login');
+            closeAuth();
+            prefillLogin();
+            toast(t('toast.resetDone'), 'ok');
+          }).catch(function (err) {
+            busy(codeBtn, false);
+            if (err.code === 'code_wrong' || err.code === 'code_expired' ||
+                err.code === 'no_code' || err.code === 'code_attempts') {
+              codeCtx.code = '';
+              setCodeState('code');
+              clearCode();
+            }
+            handleCodeError(err);
+          });
+        }
       });
 
       /* восстановление входа при загрузке страницы */

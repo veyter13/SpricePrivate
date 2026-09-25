@@ -4,5 +4,22 @@ _*.py
 _*.js
 _shots/
 *.log
+
+# Зависимости
+node_modules/
+
+# Секреты — только через переменные окружения Render, в репозиторий никогда
+.env
+.env.local
+
+# Локальная база SQLite (в продакшене используется Postgres)
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Системное
 Thumbs.db
 desktop.ini
+.DS_Store

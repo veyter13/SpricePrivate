@@ -1,0 +1,72 @@
+# Blueprint для render.com — «Infrastructure as Code».
+#
+# Как пользоваться: залить репозиторий на GitHub, затем на Render
+# New → Blueprint → выбрать репозиторий → Apply.
+# Render сам создаст и веб-сервис, и базу Postgres, и свяжет их.
+#
+# Переменные с sync: false Render спросит при создании — это секреты,
+# их нельзя держать в репозитории.
+
+services:
+  - type: web
+    name: sprice-private
+    runtime: node
+    plan: free
+    region: frankfurt
+    branch: main
+    autoDeploy: true
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      # Секрет для подписи кодов подтверждения. Render сгенерирует сам.
+      - key: CODE_PEPPER
+        generateValue: true
+
+      # База подключается автоматически — руками ничего копировать не надо.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sprice-db
+          property: connectionString
+
+      # Адрес сайта подставляется в письма. Подставь свой после первого деплоя,
+      # если имя сервиса окажется занято и Render добавит суффикс к домену.
+      - key: SITE_URL
+        value: https://sprice-private.onrender.com
+
+      - key: MAIL_FROM
+        value: Sprice Private <no-reply@sprice.example>
+
+      # ─── Почта: заполнить ОДИН из вариантов в панели Render ───
+      - key: RESEND_API_KEY
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: 587
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+
+      # ─── Коды и сессии ───
+      - key: CODE_TTL_MINUTES
+        value: 10
+      - key: CODE_MAX_ATTEMPTS
+        value: 5
+      - key: RESEND_COOLDOWN_SEC
+        value: 60
+      - key: RESEND_MAX_PER_HOUR
+        value: 5
+
+      - key: FUNPAY_URL
+        value: https://funpay.com/users/16370618/
+
+databases:
+  - name: sprice-db
+    plan: free
+    databaseName: sprice
+    user: sprice
