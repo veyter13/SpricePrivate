@@ -35,6 +35,13 @@ function init() {
   }
   console.log('[mail] режим: ' + mode + (mode === 'dev' ? ' (письма не уходят, код печатается здесь)' : ''));
 
+  if (mode === 'resend' && !process.env.MAIL_FROM) {
+    console.warn(
+      '[mail] RESEND_API_KEY задан, но MAIL_FROM пуст. Resend отправляет только с адреса на ' +
+        'подтверждённом домене, а подставится ' + FROM + ' — такой отправитель будет отклонён.'
+    );
+  }
+
   if (mode === 'smtp' && !process.env.SMTP_USER) {
     console.warn('[mail] SMTP_HOST задан, но SMTP_USER пуст — вход на сервер не пройдёт, письма не уйдут.');
   }
@@ -146,6 +153,14 @@ async function sendCode({ to, nickname, code, purpose = 'verify', locale = 'ru' 
   }
 
   if (mode === 'resend') {
+    if (!process.env.MAIL_FROM) {
+      const err = new Error(
+        'Resend требует MAIL_FROM с адресом на подтверждённом домене, например ' +
+          'Sprice Private <noreply@spriceprivate.com>. Без него отправлять нельзя.'
+      );
+      err.code = 'mail_unavailable';
+      throw err;
+    }
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
