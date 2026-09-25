@@ -1,21 +1,7 @@
 'use strict';
 
-/**
- * Отправка писем с кодом подтверждения.
- *
- * Три режима, выбираются по переменным окружения (в порядке приоритета):
- *   1. RESEND_API_KEY  — HTTP API Resend, ничего ставить не надо, 3000 писем/мес бесплатно;
- *   2. SMTP_HOST       — обычный SMTP (Gmail app password, Brevo, Mailgun, свой сервер);
- *   3. ничего не задано — DEV-режим: письмо не уходит, код печатается в консоль сервера.
- *
- * DEV-режим сделан специально: локально почту настраивать не нужно, код видно в терминале.
- */
-
 const nodemailer = require('nodemailer');
 
-// Отправитель. Gmail (и большинство SMTP) требует, чтобы адрес в From совпадал
-// с логином — иначе письмо уйдёт в спам или будет отклонено. Поэтому если
-// MAIL_FROM не задан, берём его из SMTP_USER: меньше полей для настройки.
 const FROM =
   process.env.MAIL_FROM ||
   (process.env.SMTP_USER
@@ -24,10 +10,6 @@ const FROM =
 const REPLY_TO = process.env.MAIL_REPLY_TO || '';
 const SITE = process.env.SITE_URL || 'https://spriceprivate.onrender.com';
 
-// Пароль приложения Google показывается группами по 4 символа («abcd efgh ijkl mnop»),
-// и его сплошь и рядом копируют вместе с пробелами. В SMTP пробелы — часть пароля,
-// поэтому логин падает с 535 «Username and Password not accepted», и причина неочевидна.
-// Убираем все пробелы здесь: тогда оба варианта вставки работают одинаково.
 const SMTP_PASS = String(process.env.SMTP_PASS || '').replace(/\s+/g, '');
 
 let transporter = null;
@@ -53,9 +35,6 @@ function init() {
   }
   console.log('[mail] режим: ' + mode + (mode === 'dev' ? ' (письма не уходят, код печатается здесь)' : ''));
 
-  // Режим smtp с неполными данными входа: письма молча не уйдут, а человек будет
-  // ждать код. Отдельно про DEV-режим в продакшене предупреждает server.js —
-  // здесь только про кривой логин, чтобы не дублировать одно и то же сообщение.
   if (mode === 'smtp' && !process.env.SMTP_USER) {
     console.warn('[mail] SMTP_HOST задан, но SMTP_USER пуст — вход на сервер не пройдёт, письма не уйдут.');
   }
@@ -65,8 +44,6 @@ function init() {
 
   return mode;
 }
-
-/* ─────────────────────────── тексты писем ─────────────────────────── */
 
 const TEXT = {
   verify: {
@@ -105,7 +82,6 @@ function escapeHtml(s) {
   ));
 }
 
-/** Письмо в стиле сайта: тёмный фон, градиент, код крупной моноширинной строкой */
 function htmlTemplate({ title, lead, code, note, minutes }) {
   const digits = String(code).split('').map((d) =>
     `<span style="display:inline-block;width:44px;height:56px;line-height:56px;margin:0 4px;`
@@ -146,8 +122,6 @@ function htmlTemplate({ title, lead, code, note, minutes }) {
   </table>
 </body></html>`;
 }
-
-/* ─────────────────────────── отправка ─────────────────────────── */
 
 async function sendCode({ to, nickname, code, purpose = 'verify', locale = 'ru' }) {
   const pack = (TEXT[purpose] || TEXT.verify)[locale] || (TEXT[purpose] || TEXT.verify).ru;
@@ -207,10 +181,6 @@ async function sendCode({ to, nickname, code, purpose = 'verify', locale = 'ru' 
     });
     return { ok: true, id: info.messageId };
   } catch (e) {
-    // Отдельный случай — хостинг закрывает исходящий SMTP. Соединение не устанавливается
-    // вовсе, приходит ETIMEDOUT, и выглядит это как «сломан пароль», хотя пароль ни при чём.
-    // Бесплатный план Render блокирует порты 25, 465 и 587, поэтому Gmail по SMTP там не
-    // заработает никогда. Переводим в понятный текст, иначе причину ищут не там.
     const code = (e && (e.code || (e.cause && e.cause.code))) || '';
     if (['ETIMEDOUT', 'ESOCKET', 'ECONNREFUSED', 'ECONNRESET', 'EHOSTUNREACH'].includes(code)) {
       const err = new Error(
@@ -222,7 +192,6 @@ async function sendCode({ to, nickname, code, purpose = 'verify', locale = 'ru' 
           'не заработает. Нужен провайдер с отправкой по HTTPS — задай RESEND_API_KEY, ' +
           'и режим переключится на него сам.'
       );
-      // Отдельный код: наружу уйдёт понятная фраза, подробности останутся в логе сервера.
       err.code = 'mail_unavailable';
       throw err;
     }
@@ -230,12 +199,6 @@ async function sendCode({ to, nickname, code, purpose = 'verify', locale = 'ru' 
   }
 }
 
-/**
- * Какие настройки почты вообще присутствуют на сервере — только да/нет, без значений.
- * Нужно, чтобы диагностировать «код не приходит» одним запросом к /healthz, не заходя
- * в панель хостинга: режим dev сам по себе не говорит, чего именно не хватает.
- * Секретов здесь нет: наружу уходят только булевы флаги.
- */
 function envPresence() {
   return {
     resend: !!process.env.RESEND_API_KEY,

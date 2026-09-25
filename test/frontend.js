@@ -1,15 +1,5 @@
 'use strict';
 
-/**
- * Сквозной тест ФРОНТЕНДА: настоящий сервер + настоящий Chrome через CDP.
- *
- * Проверяет то, что не видно из тестов API: что формы реально отправляются,
- * что шаг с кодом появляется, что сессия переживает перезагрузку, что заказ
- * попадает в профиль, и что в консоли браузера нет ошибок.
- *
- * Запуск: node test/frontend.js
- */
-
 const { spawn } = require('node:child_process');
 const fs = require('node:fs');
 const os = require('node:os');
@@ -33,19 +23,10 @@ function check(name, cond, extra) {
   }
 }
 
-/* ── запуск приложения ── */
 const dbFile = path.join(os.tmpdir(), 'sprice-fe-' + Date.now() + '.db');
 let serverOut = '';
 let app = null;
 
-/**
- * Порт обязан быть свободен ДО старта.
- *
- * Иначе тест подключается к чужому серверу (например, к оставленному висеть
- * серверу предпросмотра), читает чужую базу и падает совершенно непонятно:
- * свой сервер не может занять порт, `serverOut` пустой, «кода нет в логе»,
- * регистрация уходит не туда. Лучше упасть сразу и с внятным текстом.
- */
 function assertPortFree(port) {
   return new Promise((resolve) => {
     const srv = require('node:net').createServer();
@@ -74,14 +55,12 @@ function startApp() {
   app.stderr.on('data', (d) => { serverOut += d.toString(); });
 }
 
-/** Последний код подтверждения из логов сервера (DEV-режим почты) */
 function lastCode() {
   const all = serverOut.match(/КОД:\s*(\d{6})/g) || [];
   if (!all.length) return null;
   return all[all.length - 1].replace(/\D/g, '');
 }
 
-/* ── CDP ── */
 function cdp(wsUrl) {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(wsUrl);
@@ -118,15 +97,12 @@ async function findTarget() {
   throw new Error('CDP target не найден');
 }
 
-/** Общая обвязка для скриптов на странице */
 const HELPERS = `
   const $ = (id) => document.getElementById(id);
   const q = (s) => document.querySelector(s);
   const sleep = (ms) => new Promise(r => setTimeout(r, ms));
   const setVal = (el, v) => { el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); };
   const submit = (f) => f.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
-  /* Ждём, пока условие станет истинным — вместо слепых пауз.
-     Возвращает true/false, не бросает. */
   const waitFor = async (fn, ms = 8000) => {
     const t0 = Date.now();
     while (Date.now() - t0 < ms) {
@@ -149,7 +125,6 @@ async function run(send, expr) {
   let client = null;
   let chrome = null;
 
-  /* Порт проверяем ДО старта — иначе тест незаметно уйдёт на чужой сервер */
   if (!(await assertPortFree(APP_PORT))) {
     console.log('\nПорт ' + APP_PORT + ' уже занят.');
     console.log('Скорее всего остался висеть сервер предпросмотра или прошлый прогон.');
@@ -159,7 +134,6 @@ async function run(send, expr) {
   startApp();
 
   try {
-    /* ждём старта приложения */
     let up = false;
     for (let i = 0; i < 50; i++) {
       try { const r = await fetch(BASE + '/healthz'); if (r.ok) { up = true; break; } } catch (e) {}
@@ -180,13 +154,11 @@ async function run(send, expr) {
     const { send, events } = client;
     await send('Page.enable'); await send('Runtime.enable'); await send('Log.enable');
 
-    /* ошибки JS на странице ловим напрямую, а не только через Log */
     const PAGE_ERRORS = [];
     await send('Page.navigate', { url: BASE + '/' });
     await sleep(3000);
     await run(send, `window.__errs = []; window.addEventListener('error', e => window.__errs.push(e.message + ' @' + e.lineno)); 'ok'`);
 
-    /* ── 1. загрузка ── */
     console.log('\n─── 1. Загрузка страницы ───');
     const boot = await run(send, `(() => { ${HELPERS}
       return JSON.stringify({
@@ -201,7 +173,6 @@ async function run(send, expr) {
     check('5 карточек продуктов', b.cards === 5, b.cards);
     check('кнопка «Войти» видна, меню скрыто', b.authOpenVisible === true && b.userMenuHidden === true, b);
 
-    /* ── 2. регистрация ── */
     console.log('\n─── 2. Регистрация через форму ───');
     const reg = await run(send, `(async () => { ${HELPERS}
       $('authOpen').click();
@@ -214,7 +185,6 @@ async function run(send, expr) {
       setVal($('regPw2'), 'FrontPass1');
       await sleep(150);
       submit($('regForm'));
-      /* ждём именно появления панели кода, а не фиксированную паузу */
       const shown = await waitFor(() => !$('codeForm').hidden, 8000);
       await sleep(300);
       return JSON.stringify({
@@ -240,19 +210,16 @@ async function run(send, expr) {
     check('кнопка подтверждения', r2.btn === 'Подтвердить', r2.btn);
     check('таймер повторной отправки идёт', /Заново через \d+ с/.test(r2.resend || ''), r2.resend);
 
-    /* ── 3. письмо с кодом ── */
     console.log('\n─── 3. Письмо с кодом ───');
     const code = lastCode();
     check('сервер сформировал код (письмо в DEV-режиме)', /^\d{6}$/.test(String(code)), code);
     check('в логе есть письмо для нашей почты', /кому: front@test\.ru/.test(serverOut), true);
 
-    /* ── 4. неверный код ── */
     console.log('\n─── 4. Неверный код ───');
     const wrong = await run(send, `(async () => { ${HELPERS}
       const cells = [...document.querySelectorAll('[data-code-cell]')];
       const bad = ${JSON.stringify(String(code))} === '000000' ? '111111' : '000000';
       cells.forEach((c, i) => { c.value = bad[i]; c.dispatchEvent(new Event('input', { bubbles: true })); });
-      /* автоподстановка отправляет форму сама; ждём появления ошибки */
       await waitFor(() => !$('codeErr').hidden, 8000);
       await sleep(250);
       return JSON.stringify({
@@ -269,7 +236,6 @@ async function run(send, expr) {
     check('показана ошибка про неверный код', w.errShown === true && /Неверный код/.test(w.errText || ''), w.errText);
     check('ячейки очищены после ошибки', w.cellsEmpty === true, w);
 
-    /* ── 5. верный код ── */
     console.log('\n─── 5. Верный код ──');
     const ok = await run(send, `(async () => { ${HELPERS}
       const cells = [...document.querySelectorAll('[data-code-cell]')];
@@ -295,7 +261,6 @@ async function run(send, expr) {
     check('в меню правильная почта', o.mail === 'front@test.ru', o.mail);
     check('показан тост о создании аккаунта', /Аккаунт создан/.test(o.toast || '') && /frontuser/.test(o.toast || ''), o.toast);
 
-    /* ── 6. сессия после перезагрузки ── */
     console.log('\n─── 6. Сессия после перезагрузки ───');
     await send('Page.navigate', { url: BASE + '/' });
     await sleep(3000);
@@ -315,7 +280,6 @@ async function run(send, expr) {
     check('ТОКЕНА НЕТ в localStorage', s6.tokenInStorage === 'нет', s6.tokenInStorage);
     check('cookie сессии недоступна из JS (httpOnly)', s6.cookiesReadable === 'пусто', s6.cookiesReadable);
 
-    /* ── 7. заказ ── */
     console.log('\n─── 7. Заказ ───');
     const order = await run(send, `(async () => { ${HELPERS}
       q('[data-product=matrixhub]').click();
@@ -324,7 +288,6 @@ async function run(send, expr) {
       const plans = [...document.querySelectorAll('.plan__dur')].map(e => e.textContent).join('/');
       const hint = $('modalAuthHintText').textContent;
       $('modalPay').click();
-      /* ждём, пока счётчик заказов в меню обновится (значит POST /api/orders прошёл) */
       await waitFor(() => $('dropOrders').textContent === '1', 10000);
       $('modalClose').click();
       await sleep(400);
@@ -336,7 +299,6 @@ async function run(send, expr) {
     check('подсказка для вошедшего', /frontuser/.test(or.hint || ''), or.hint);
     check('счётчик заказов в меню обновился', or.badge === '1', or.badge);
 
-    /* ── 8. профиль ── */
     console.log('\n─── 8. Профиль ───');
     const prof = await run(send, `(async () => { ${HELPERS}
       $('userBtn').click();
@@ -367,13 +329,11 @@ async function run(send, expr) {
     check('тариф и дата у заказа', /1 Месяц · /.test(p8.orderMeta || ''), p8.orderMeta);
     check('цена заказа', p8.orderPrice === '299\u00a0₽', p8.orderPrice);
 
-    /* ── 9. английский язык ── */
     console.log('\n─── 9. Английский язык ──');
     const en = await run(send, `(async () => { ${HELPERS}
       const btn = q('.lang-switch__btn[data-lang=en]');
       const hadHandler = !!btn;
       btn.click();
-      /* ждём, пока язык реально применится к документу */
       const applied = await waitFor(() => document.documentElement.lang === 'en', 5000);
       await sleep(500);
       const row = q('#orderList .order');
@@ -385,15 +345,9 @@ async function run(send, expr) {
         orderName: row ? row.querySelector('.order__b b').textContent : '—',
         orderMeta: row ? row.querySelector('.order__b span').textContent : '—',
         ordersLabel: document.querySelector('.profile__stat span').textContent,
-        /* статические заглушки скрытых панелей тоже должны переводиться */
         staticTitles: { detailTitle: $('detailTitle').textContent, authSub: $('authSub').textContent },
         cyr: (() => {
           const skip = { SCRIPT: 1, STYLE: 1, NOSCRIPT: 1 };
-          /* Считаем только ВИДИМЫЙ текст: скрытые панели (модалка покупки,
-             карточка авторизации, страница продукта) держат текст, отрисованный
-             в прошлом языке, и перерисовываются при следующем открытии —
-             это не видно пользователю. Тост-контейнер транзитный: уже
-             показанный тост язык не меняет. */
           const toasts = document.getElementById('toasts');
           const visible = (el) => {
             if (toasts && toasts.contains(el)) return false;
@@ -429,7 +383,6 @@ async function run(send, expr) {
       e9.staticTitles);
     check('непереведённых видимых узлов нет', (e9.cyr || []).length === 0, e9.cyr);
 
-    /* ── 10. шаг кода на английском ── */
     console.log('\n─── 10. Шаг кода на английском ───');
     const enCode = await run(send, `(async () => { ${HELPERS}
       $('profileClose').click();
@@ -448,7 +401,6 @@ async function run(send, expr) {
       const state1 = { lead: $('codeLead').textContent.slice(0, 70), btn: $('codeBtn').textContent };
       setVal($('codeMail'), 'front@test.ru');
       submit($('codeForm'));
-      /* ждём перехода на ввод кода: поле почты скрывается, появляются ячейки */
       await waitFor(() => !$('codeBox').hidden, 8000);
       await sleep(250);
       return JSON.stringify({
@@ -466,7 +418,6 @@ async function run(send, expr) {
     check('английский текст на шаге кода', /code was sent/.test((ec.state2 || {}).lead || ''), (ec.state2 || {}).lead);
     check('таймер на английском', /Resend in \d+s/.test((ec.state2 || {}).resend || ''), (ec.state2 || {}).resend);
 
-    /* ── 11. вход после сброса ── */
     console.log('\n─── 11. Вход и выход ───');
     const login = await run(send, `(async () => { ${HELPERS}
       $('codeBack').click();
@@ -506,7 +457,6 @@ async function run(send, expr) {
     check('после выхода вернулась кнопка «Войти»', l11.afterLogout === true, l11);
     check('ник подставлен в форму входа', l11.loginPrefilled === 'frontuser', l11.loginPrefilled);
 
-    /* ── 12. консоль ── */
     console.log('\n─── 12. Ошибки ───');
     const pageErrs = await run(send, `JSON.stringify(window.__errs || [])`);
     const pe = JSON.parse(pageErrs || '[]');
@@ -515,9 +465,6 @@ async function run(send, expr) {
     const cerr = events
       .filter((e) => e.method === 'Log.entryAdded' && e.params.entry.level === 'error')
       .map((e) => e.params.entry.text);
-    /* Шаг 4 намеренно отправляет неверный код → сервер отвечает 400.
-       Браузер пишет об этом в консоль как о сетевой ошибке. Это ожидаемо:
-       отсеиваем ровно её и требуем, чтобы больше ничего не было. */
     const EXPECTED_400 = /Failed to load resource: the server responded with a status of 400/;
     const unexpected = cerr.filter((t) => !EXPECTED_400.test(t));
     check('ошибок в консоли браузера нет (кроме намеренного 400)', unexpected.length === 0, unexpected);

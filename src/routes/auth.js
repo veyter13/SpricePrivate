@@ -1,17 +1,5 @@
 'use strict';
 
-/**
- * Авторизация: регистрация → код на почту → подтверждение → сессия.
- *
- * Ключевые решения:
- *   - аккаунт создаётся СРАЗУ, но с email_verified = 0. Войти до подтверждения нельзя;
- *   - код живёт CODE_TTL_MINUTES минут, хранится как HMAC-хеш, максимум CODE_MAX_ATTEMPTS попыток;
- *   - повторная отправка: не чаще раза в 60 секунд и не больше 5 писем в час на адрес;
- *   - сессия — httpOnly cookie, в базе только SHA-256 хеш токена;
- *   - ответы на «занята почта» и «нет такого пользователя» не дают перечислять базу:
- *     на сброс пароля отвечаем одинаково независимо от существования адреса.
- */
-
 const express = require('express');
 const db = require('../db');
 const sec = require('../security');
@@ -24,8 +12,6 @@ const COOKIE_SECURE = process.env.COOKIE_SECURE
 
 const RESEND_COOLDOWN_SEC = Number(process.env.RESEND_COOLDOWN_SEC || 60);
 const RESEND_MAX_PER_HOUR = Number(process.env.RESEND_MAX_PER_HOUR || 5);
-
-/* ─────────────────────────── ответы об ошибках ─────────────────────────── */
 
 class ApiError extends Error {
   constructor(status, code, extra) {
@@ -42,8 +28,6 @@ function asyncRoute(fn) {
   return (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 }
 
-/* ─────────────────────────── события (аудит) ─────────────────────────── */
-
 function logEvent(kind, { userId, emailLower, ip } = {}) {
   return db
     .run(
@@ -52,8 +36,6 @@ function logEvent(kind, { userId, emailLower, ip } = {}) {
     )
     .catch(() => {});
 }
-
-/* ─────────────────────────── сессии ─────────────────────────── */
 
 async function createSession(res, userId, remember, req) {
   const token = sec.randomToken(32);
@@ -109,7 +91,6 @@ async function userFromRequest(req) {
   return u || null;
 }
 
-/** Пропускает только вошедших */
 const requireUser = asyncRoute(async (req, res, next) => {
   const u = await userFromRequest(req);
   if (!u) throw new ApiError(401, 'unauthorized');
@@ -117,13 +98,10 @@ const requireUser = asyncRoute(async (req, res, next) => {
   next();
 });
 
-/** Пускает всех, но подставляет req.user если вошёл */
 const optionalUser = asyncRoute(async (req, res, next) => {
   req.user = await userFromRequest(req);
   next();
 });
-
-/* ─────────────────────────── коды на почту ─────────────────────────── */
 
 async function issueCode({ user, purpose, locale }) {
   const emailLower = user.email_lower;
@@ -148,7 +126,6 @@ async function issueCode({ user, purpose, locale }) {
     throw new ApiError(429, 'too_many_codes');
   }
 
-  // прошлые неиспользованные коды гасим — активным остаётся только последний
   await db.run(
     `UPDATE email_codes SET consumed_at = $1 WHERE email_lower = $2 AND purpose = $3 AND consumed_at IS NULL`,
     [db.nowIso(), emailLower, purpose]
@@ -179,11 +156,9 @@ async function issueCode({ user, purpose, locale }) {
     locale: locale === 'en' ? 'en' : 'ru'
   });
 
-  // в DEV-режиме отдаём код наружу, чтобы можно было протестировать без почты
   return { sent, devCode: sent && sent.dev ? code : undefined };
 }
 
-/** Проверяет код и гасит его. Бросает ApiError с понятным кодом. */
 async function consumeCode({ emailLower, code, purpose }) {
   const row = await db.get(
     `SELECT * FROM email_codes
@@ -208,11 +183,8 @@ async function consumeCode({ emailLower, code, purpose }) {
   return row;
 }
 
-/* ─────────────────────────── роутер ─────────────────────────── */
-
 const router = express.Router();
 
-/** POST /api/auth/register */
 router.post(
   '/register',
   asyncRoute(async (req, res) => {
@@ -245,9 +217,6 @@ router.post(
     const user = await db.get(`SELECT * FROM users WHERE id = $1`, [id]);
     logEvent('register', { userId: id, emailLower: email, ip: req.ip });
 
-    // Письмо может не уйти: почта не настроена либо хостинг закрывает исходящий SMTP.
-    // Тогда аккаунт уже вставлен, и повторная попытка упрётся в «email_taken» — человек
-    // останется заперт с неподтверждённым аккаунтом и без кода. Поэтому откатываем вставку.
     let devCode;
     try {
       ({ devCode } = await issueCode({ user, purpose: 'verify', locale }));
@@ -268,7 +237,6 @@ router.post(
   })
 );
 
-/** POST /api/auth/verify — подтверждение почты кодом, сразу выдаём сессию */
 router.post(
   '/verify',
   asyncRoute(async (req, res) => {
@@ -298,7 +266,6 @@ router.post(
   })
 );
 
-/** POST /api/auth/resend — повторная отправка кода */
 router.post(
   '/resend',
   asyncRoute(async (req, res) => {
@@ -307,7 +274,6 @@ router.post(
     const locale = (req.body && req.body.locale) === 'en' ? 'en' : 'ru';
 
     const user = await db.get(`SELECT * FROM users WHERE email_lower = $1`, [email]);
-    // Не раскрываем, есть ли такой адрес: отвечаем «ок» в любом случае
     if (!user) {
       logEvent('resend_unknown', { emailLower: email, ip: req.ip });
       return res.json({ ok: true, needCode: true, email, purpose, silent: true });
@@ -319,7 +285,6 @@ router.post(
   })
 );
 
-/** POST /api/auth/login */
 router.post(
   '/login',
   asyncRoute(async (req, res) => {
@@ -345,7 +310,6 @@ router.post(
       throw new ApiError(401, 'invalid_credentials');
     }
 
-    // пароль верный, но почта не подтверждена — отправляем код и просим подтвердить
     if (Number(user.email_verified) !== 1) {
       let devCode;
       try {
@@ -371,7 +335,6 @@ router.post(
   })
 );
 
-/** POST /api/auth/logout */
 router.post(
   '/logout',
   asyncRoute(async (req, res) => {
@@ -382,7 +345,6 @@ router.post(
   })
 );
 
-/** GET /api/auth/me */
 router.get(
   '/me',
   asyncRoute(async (req, res) => {
@@ -391,7 +353,6 @@ router.get(
   })
 );
 
-/** POST /api/auth/reset/request — запрос кода для сброса пароля */
 router.post(
   '/reset/request',
   asyncRoute(async (req, res) => {
@@ -412,12 +373,10 @@ router.post(
     } else {
       logEvent('reset_unknown', { emailLower: email, ip: req.ip });
     }
-    // Ответ одинаковый независимо от того, есть адрес в базе или нет
     res.json({ ok: true, needCode: true, purpose: 'reset', email, devCode });
   })
 );
 
-/** POST /api/auth/reset/confirm — новый пароль по коду */
 router.post(
   '/reset/confirm',
   asyncRoute(async (req, res) => {
@@ -438,7 +397,6 @@ router.post(
       db.nowIso(),
       user.id
     ]);
-    // все старые сессии гасим — пароль сменился
     await db.run(`UPDATE sessions SET revoked_at = $1 WHERE user_id = $2 AND revoked_at IS NULL`, [
       db.nowIso(),
       user.id
@@ -448,7 +406,6 @@ router.post(
   })
 );
 
-/** POST /api/auth/password — смена пароля из профиля */
 router.post(
   '/password',
   requireUser,

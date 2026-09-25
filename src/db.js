@@ -1,26 +1,5 @@
 'use strict';
 
-/**
- * Слой доступа к БД.
- *
- * Один и тот же SQL работает на двух драйверах:
- *   - Postgres  — если задан DATABASE_URL (так работает на Render);
- *   - SQLite    — встроенный node:sqlite, если DATABASE_URL нет (локальная разработка и тесты).
- *
- * Почему так: на Render файловая система ЭФЕМЕРНАЯ — файл SQLite обнулится при каждом
- * передеплое и рестарте. Поэтому в продакшене обязателен Postgres, а SQLite оставлен
- * только чтобы можно было гонять и тестировать всё локально без установки Postgres.
- *
- * Правила переносимого SQL (соблюдать при добавлении запросов):
- *   - первичные ключи — TEXT с UUID, никаких SERIAL/IDENTITY (разные диалекты);
- *   - время — ISO-8601 строкой (new Date().toISOString()), не NOW();
- *   - булевы — INTEGER 0/1;
- *   - плейсхолдеры только $1..$n и СТРОГО по возрастанию, без повторов
- *     (шим превращает их в ? для SQLite позиционной подстановкой);
- *   - никаких RETURNING — вставь, потом отдельно SELECT;
- *   - CREATE TABLE/INDEX только с IF NOT EXISTS.
- */
-
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
@@ -32,9 +11,6 @@ let pool = null;
 let sqlite = null;
 let ready = null;
 
-/* ─────────────────────────── шим под SQLite ─────────────────────────── */
-
-/** $1, $2 … → ? (позиционно, по возрастанию) */
 function toSqliteSql(sql) {
   let n = 0;
   return sql.replace(/\$(\d+)/g, () => {
@@ -43,7 +19,6 @@ function toSqliteSql(sql) {
   });
 }
 
-/** node:sqlite принимает только null/number/string/bigint/Buffer — приводим типы */
 function toSqliteParams(params) {
   return (params || []).map((v) => {
     if (v === undefined || v === null) return null;
@@ -53,8 +28,6 @@ function toSqliteParams(params) {
     return v;
   });
 }
-
-/* ─────────────────────────────── схема ─────────────────────────────── */
 
 const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS users (
@@ -121,8 +94,6 @@ const SCHEMA = [
   `CREATE INDEX IF NOT EXISTS idx_events_kind ON events (kind, created_at)`
 ];
 
-/* ─────────────────────────────── init ─────────────────────────────── */
-
 async function init() {
   if (ready) return ready;
   ready = (async () => {
@@ -153,22 +124,17 @@ async function init() {
   return ready;
 }
 
-/* ─────────────────────────────── запросы ─────────────────────────────── */
-
-/** Все строки */
 async function all(sql, params) {
   await init();
   if (DRIVER === 'pg') return (await pool.query(sql, params || [])).rows;
   return sqlite.prepare(toSqliteSql(sql)).all(...toSqliteParams(params));
 }
 
-/** Одна строка или null */
 async function get(sql, params) {
   const rows = await all(sql, params);
   return rows.length ? rows[0] : null;
 }
 
-/** Выполнить без результата; возвращает { changes } */
 async function run(sql, params) {
   await init();
   if (DRIVER === 'pg') {
@@ -179,7 +145,6 @@ async function run(sql, params) {
   return { changes: Number(r.changes) };
 }
 
-/** Выполнить несколько запросов в транзакции */
 async function tx(fn) {
   await init();
   if (DRIVER === 'pg') {
@@ -226,12 +191,9 @@ async function close() {
   if (sqlite) sqlite.close();
 }
 
-/* ─────────────────────────────── утилиты ─────────────────────────────── */
-
 const uid = () => crypto.randomUUID();
 const nowIso = () => new Date().toISOString();
 
-/** Сбросить кэш инициализации — нужно тестам, чтобы переоткрыть БД */
 function reset() {
   ready = null;
 }
@@ -248,6 +210,5 @@ module.exports = {
   uid,
   nowIso,
   SCHEMA,
-  // для тестов
   _toSqliteSql: toSqliteSql
 };

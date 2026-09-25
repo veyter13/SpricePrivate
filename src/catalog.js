@@ -1,16 +1,5 @@
 'use strict';
 
-/**
- * Каталог продуктов — ИСТОЧНИК ИСТИНЫ ПО ЦЕНАМ.
- *
- * Цены лежат на сервере намеренно: если брать стоимость из запроса клиента,
- * любой желающий отправит себе заказ за 1 ₽ через обычный POST. При создании
- * заказа сервер берёт цену ОТСЮДА, а присланные клиентом поля игнорирует.
- *
- * Названия и описания для витрины по-прежнему в public/index.html — там картинки,
- * тексты и переводы. Здесь только то, что влияет на деньги.
- */
-
 const FUNPAY_URL = process.env.FUNPAY_URL || 'https://funpay.com/users/16370618/';
 
 const PRODUCTS = {
@@ -62,7 +51,6 @@ const PRODUCTS = {
 
 const IDS = Object.keys(PRODUCTS);
 
-/** «2 199 ₽» — неразрывные пробелы: число не разрывается переносом строки */
 function formatPrice(n) {
   return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0') + '\u00a0₽';
 }
@@ -79,13 +67,11 @@ function getPlan(id, idx) {
   return p.plans[i];
 }
 
-/** Минимальная цена продукта — для «от 899 ₽» на витрине */
 function minPrice(id) {
   const p = getProduct(id);
   return p ? Math.min(...p.plans.map((x) => x.price)) : null;
 }
 
-/** Отдача наружу: цены числом + готовые строки, чтобы фронт не дублировал формат */
 function publicCatalog(locale) {
   const loc = locale === 'en' ? 'en' : 'ru';
   return IDS.map((id) => {

@@ -1,18 +1,7 @@
 'use strict';
 
-/**
- * Сквозной тест бэкенда. Поднимает приложение в памяти на SQLite (:memory:),
- * прогоняет весь путь пользователя и все ключевые отказы.
- *
- * Запуск:  npm test
- * Почту настраивать не нужно — в DEV-режиме код подтверждения возвращается
- * прямо в ответе API (поле devCode) и печатается в логах.
- */
-
 process.env.SQLITE_PATH = ':memory:';
 process.env.CODE_PEPPER = 'test-pepper-not-for-production';
-// Кулдаун читается модулем при загрузке, поменять его в рантайме нельзя — поэтому 5 секунд,
-// прогон теста занимает меньше, и повторная отправка гарантированно попадает в окно.
 process.env.RESEND_COOLDOWN_SEC = '5';
 process.env.RESEND_MAX_PER_HOUR = '5';
 process.env.NODE_ENV = 'test';
@@ -37,7 +26,6 @@ function check(name, cond, extra) {
   }
 }
 
-/** Клиент с собственной «банкой» cookie — fetch в Node её не хранит */
 function client(base) {
   let cookie = '';
   return {
@@ -72,7 +60,6 @@ function client(base) {
   const other = client(base);
 
   try {
-    /* ── 1. healthz ── */
     console.log('\n─── 1. Состояние сервера ───');
     const h = await c.req('GET', '/healthz');
     check('GET /healthz отвечает 200', h.status === 200, h.body);
@@ -80,7 +67,6 @@ function client(base) {
     check('почта в DEV-режиме', h.body && h.body.mail === 'dev', h.body);
     check('каталог загружен: 5 продуктов', h.body && h.body.products === 5, h.body);
 
-    /* ── 2. каталог ── */
     console.log('\n─── 2. Каталог ───');
     const cat = await c.req('GET', '/api/catalog?lang=ru');
     check('каталог отдаётся', cat.status === 200 && Array.isArray(cat.body.products), cat.body);
@@ -92,7 +78,6 @@ function client(base) {
     const potEn = (catEn.body.products || []).find((p) => p.id === 'potassium');
     check('английские названия тарифов', potEn && potEn.plans[1].duration === 'Forever', potEn && potEn.plans[1]);
 
-    /* ── 3. регистрация и её отказы ── */
     console.log('\n─── 3. Регистрация ───');
     const badNick = await c.req('POST', '/api/auth/register', { nickname: 'ab', email: 'a@b.ru', password: 'Passw0rd1' });
     check('короткий ник отклонён (400)', badNick.status === 400 && badNick.body.error === 'nickname_invalid', badNick.body);
@@ -119,7 +104,6 @@ function client(base) {
     const dupNick = await other.req('POST', '/api/auth/register', { nickname: 'TESTER', email: 'new@test.ru', password: 'Passw0rd1' });
     check('занятый ник отклонён, регистр не важен (409)', dupNick.status === 409 && dupNick.body.error === 'nickname_taken', dupNick.body);
 
-    /* ── 4. подтверждение кода ── */
     console.log('\n─── 4. Подтверждение кода ──');
     const wrong = await c.req('POST', '/api/auth/verify', { email: 't@test.ru', code: code === '000000' ? '111111' : '000000' });
     check('неверный код отклонён (400)', wrong.status === 400 && wrong.body.error === 'code_wrong', wrong.body);
@@ -137,14 +121,12 @@ function client(base) {
     const reused = await other.req('POST', '/api/auth/verify', { email: 't@test.ru', code });
     check('использованный код повторно не проходит', reused.status === 400 && reused.body.error === 'no_code', reused.body);
 
-    /* ── 5. сессия ── */
     console.log('\n─── 5. Сессия ───');
     const me = await c.req('GET', '/api/auth/me');
     check('GET /me возвращает вошедшего', me.body.user && me.body.user.nickname === 'tester', me.body);
     const meAnon = await other.req('GET', '/api/auth/me');
     check('без cookie — пусто', meAnon.body.user === null, meAnon.body);
 
-    /* ── 6. вход ── */
     console.log('\n─── 6. Вход ───');
     const loginBad = await other.req('POST', '/api/auth/login', { login: 'tester', password: 'WrongPass1' });
     check('неверный пароль отклонён (401)', loginBad.status === 401 && loginBad.body.error === 'invalid_credentials', loginBad.body);
@@ -159,7 +141,6 @@ function client(base) {
     const loginByMail = await other2.req('POST', '/api/auth/login', { login: 'T@TEST.RU', password: 'Passw0rd1' });
     check('вход по почте в верхнем регистре прошёл', loginByMail.status === 200, loginByMail.body);
 
-    /* ── 7. заказы ── */
     console.log('\n─── 7. Заказы ───');
     const anonOrder = await client(base).req('POST', '/api/orders', { productId: 'potassium', planIdx: 0 });
     check('заказ без входа отклонён (401)', anonOrder.status === 401 && anonOrder.body.error === 'unauthorized', anonOrder.body);
@@ -170,7 +151,6 @@ function client(base) {
     const badPlan = await c.req('POST', '/api/orders', { productId: 'potassium', planIdx: 99 });
     check('несуществующий тариф отклонён (400)', badPlan.status === 400 && badPlan.body.error === 'plan_unknown', badPlan.body);
 
-    // ключевая проверка: клиент присылает поддельную цену — сервер обязан её проигнорировать
     const order = await c.req('POST', '/api/orders', {
       productId: 'potassium', planIdx: 1, price: 1, priceText: '1 ₽', locale: 'ru'
     });
@@ -191,7 +171,6 @@ function client(base) {
     const listEn = await c.req('GET', '/api/orders?lang=en');
     check('тот же список на английском', listEn.body.orders.some((o) => o.planDuration === 'Forever'), listEn.body.orders);
 
-    /* ── 8. профиль ── */
     console.log('\n─── 8. Профиль ──');
     const prof = await c.req('GET', '/api/profile?lang=ru');
     check('профиль отдаётся', prof.status === 200 && prof.body.ok === true, prof.body);
@@ -204,7 +183,6 @@ function client(base) {
     const anonProf = await client(base).req('GET', '/api/profile');
     check('профиль без входа отклонён (401)', anonProf.status === 401, anonProf.body);
 
-    /* ── 9. антифлуд повторных писем ── */
     console.log('\n─── 9. Защита от флуда письмами ──');
     const again = await c.req('POST', '/api/auth/resend', { email: 't@test.ru', purpose: 'verify' });
     check('повторная отправка раньше времени отклонена (429)', again.status === 429 && again.body.error === 'too_soon', again.body);
@@ -213,14 +191,12 @@ function client(base) {
     const unknownMail = await client(base).req('POST', '/api/auth/resend', { email: 'нет@такого.ru' });
     check('на незнакомый адрес отвечают так же (без перечисления базы)', unknownMail.status === 200 && unknownMail.body.ok === true, unknownMail.body);
 
-    /* ── 10. выход ── */
     console.log('\n─── 10. Выход ───');
     const out = await c.req('POST', '/api/auth/logout');
     check('выход прошёл', out.status === 200 && out.body.ok === true, out.body);
     const afterOut = await c.req('GET', '/api/auth/me');
     check('после выхода сессии нет', afterOut.body.user === null, afterOut.body);
 
-    /* ── 11. сброс пароля ── */
     console.log('\n─── 11. Сброс пароля ───');
     const rc = client(base);
     const req1 = await rc.req('POST', '/api/auth/reset/request', { email: 't@test.ru', locale: 'ru' });
@@ -239,7 +215,6 @@ function client(base) {
     const newPw = await client(base).req('POST', '/api/auth/login', { login: 'tester', password: 'NewPass123' });
     check('новый пароль работает', newPw.status === 200, newPw.body);
 
-    /* ── 12. защита маршрутов ── */
     console.log('\n─── 12. Прочее ───');
     const nf = await client(base).req('GET', '/api/неизвестный');
     check('неизвестный API-путь → 404 JSON', nf.status === 404 && nf.body.error === 'not_found', nf.body);

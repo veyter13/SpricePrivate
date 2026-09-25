@@ -1,16 +1,7 @@
 'use strict';
 
-/**
- * Sprice Private — сервер.
- *
- * Один процесс отдаёт и API, и сайт: на Render это Web Service без отдельного
- * фронтенд-хостинга. Порт берётся из process.env.PORT (Render задаёт его сам).
- */
-
 require('dotenv').config();
 
-// node:sqlite помечен экспериментальным и сыплет предупреждением при каждом старте.
-// Гасим только его, остальные предупреждения Node оставляем видимыми.
 const originalEmit = process.emitWarning;
 process.emitWarning = function (warning, ...rest) {
   const text = typeof warning === 'string' ? warning : (warning && warning.message) || '';
@@ -35,12 +26,8 @@ const PUBLIC_DIR = path.join(__dirname, 'public');
 
 const app = express();
 
-// Render держит приложение за своим прокси: без этого req.ip будет всегда 127.0.0.1,
-// а rate limit начнёт банить всех сразу, и secure-cookie не выставится.
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
-
-/* ─────────────────────────── базовые middleware ─────────────────────────── */
 
 app.use(express.json({ limit: '64kb' }));
 app.use(express.urlencoded({ extended: false, limit: '64kb' }));
@@ -57,8 +44,6 @@ app.use((req, res, next) => {
   next();
 });
 
-/* ─────────────────────────── ограничение частоты ─────────────────────────── */
-
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000,
   limit: Number(process.env.RATE_LIMIT_PER_MIN || 120),
@@ -67,7 +52,6 @@ const apiLimiter = rateLimit({
   message: { error: 'rate_limited' }
 });
 
-// На вход/регистрацию — заметно строже, чтобы не перебирали пароли
 const authLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
   limit: Number(process.env.AUTH_RATE_LIMIT || 30),
@@ -82,8 +66,6 @@ app.use('/api/auth/register', authLimiter);
 app.use('/api/auth/verify', authLimiter);
 app.use('/api/auth/reset/request', authLimiter);
 
-/* ─────────────────────────── маршруты ─────────────────────────── */
-
 app.get('/healthz', async (req, res) => {
   try {
     await db.init();
@@ -91,8 +73,6 @@ app.get('/healthz', async (req, res) => {
       ok: true,
       db: db.DRIVER,
       mail: mail.getMode(),
-      // какие из настроек почты заданы (только да/нет) — чтобы «код не приходит»
-      // диагностировался одним запросом, без похода в панель хостинга
       mailEnv: mail.envPresence(),
       products: catalog.IDS.length,
       uptime: Math.round(process.uptime())
@@ -106,8 +86,6 @@ app.use('/api/auth', authRoutes.router);
 app.use('/api', orderRoutes.router);
 
 app.use('/api', (req, res) => res.status(404).json({ error: 'not_found' }));
-
-/* ─────────────────────────── статика ─────────────────────────── */
 
 app.use(
   express.static(PUBLIC_DIR, {
@@ -123,13 +101,10 @@ app.use(
   })
 );
 
-// Сайт одностраничный, навигация через hash — любой неизвестный путь отдаёт index.html
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) return next();
   res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
 });
-
-/* ─────────────────────────── ошибки ─────────────────────────── */
 
 app.use((err, req, res, next) => {
   const status = err.status || 500;
@@ -141,8 +116,6 @@ app.use((err, req, res, next) => {
   }
   res.status(status).json(body);
 });
-
-/* ─────────────────────────── запуск ─────────────────────────── */
 
 let server = null;
 
@@ -160,11 +133,6 @@ async function start() {
   });
 }
 
-/**
- * На Render диск эфемерный: SQLite потеряется при следующем деплое или рестарте.
- * Если проект запущен как production без DATABASE_URL — это почти наверняка
- * ошибка настройки, о ней надо кричать в логах, а не молчать.
- */
 function warnProdMisconfig() {
   if (!IS_PROD) return;
   const warn = (msg) => console.warn('  [!] ' + msg);
@@ -174,9 +142,6 @@ function warnProdMisconfig() {
     warn('рестарте. Подключите Postgres и задайте DATABASE_URL.');
   }
   if (mail.getMode() === 'dev') {
-    // Это самая дорогая по времени поиска поломка: регистрация «проходит», человек
-    // видит экран ввода кода — и код не приходит. Поэтому пишем не только что не так,
-    // но и куда идти и чем проверить.
     warn('ПОЧТА В DEV-РЕЖИМЕ: письма НЕ отправляются, код печатается только в этот лог.');
     warn('Люди регистрируются, но подтвердить почту не могут.');
     warn('Задайте одну из пар в панели хостинга (Render → Environment):');

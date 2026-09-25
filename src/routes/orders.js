@@ -1,15 +1,5 @@
 'use strict';
 
-/**
- * Заказы и профиль.
- *
- * Заказы живут в базе и привязаны к user_id — в отличие от прежней версии,
- * где список лежал в localStorage браузера и терялся при очистке кэша.
- *
- * Цена берётся из src/catalog.js, а НЕ из тела запроса: клиент присылает только
- * productId и planIdx, всё остальное сервер решает сам.
- */
-
 const express = require('express');
 const db = require('../db');
 const catalog = require('../catalog');
@@ -19,8 +9,6 @@ const DEDUP_WINDOW_MIN = Number(process.env.ORDER_DEDUP_MINUTES || 10);
 
 const router = express.Router();
 
-/* ─────────────────────────── каталог ─────────────────────────── */
-
 router.get(
   '/catalog',
   asyncRoute(async (req, res) => {
@@ -28,8 +16,6 @@ router.get(
     res.json({ ok: true, funpay: catalog.FUNPAY_URL, products: catalog.publicCatalog(locale) });
   })
 );
-
-/* ─────────────────────────── заказы ─────────────────────────── */
 
 function orderView(o, locale) {
   const loc = locale === 'en' ? 'en' : 'ru';
@@ -48,7 +34,6 @@ function orderView(o, locale) {
   };
 }
 
-/** POST /api/orders — зафиксировать заказ перед уходом на оплату */
 router.post(
   '/orders',
   requireUser,
@@ -64,7 +49,6 @@ router.post(
 
     if (Number(req.user.email_verified) !== 1) throw new ApiError(403, 'not_verified');
 
-    // тот же продукт и тариф в пределах окна — не дублируем
     const since = new Date(Date.now() - DEDUP_WINDOW_MIN * 60 * 1000).toISOString();
     const existing = await db.get(
       `SELECT * FROM orders
@@ -89,7 +73,6 @@ router.post(
   })
 );
 
-/** GET /api/orders — список заказов пользователя */
 router.get(
   '/orders',
   requireUser,
@@ -103,7 +86,6 @@ router.get(
   })
 );
 
-/** POST /api/orders/:id/cancel */
 router.post(
   '/orders/:id/cancel',
   requireUser,
@@ -121,7 +103,6 @@ router.post(
   })
 );
 
-/** GET /api/profile — статистика для личного кабинета */
 router.get(
   '/profile',
   requireUser,

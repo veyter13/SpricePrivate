@@ -1,16 +1,5 @@
 'use strict';
 
-/**
- * Проверка настроек почты.
- *
- * Запуск:
- *   npm run mail:check                    — проверить, что логин принимается
- *   npm run mail:check -- mail@mail.ru    — ещё и отправить тестовое письмо
- *
- * Читает .env, поэтому пароль нигде не нужно вводить руками.
- * Пароль в вывод не попадает — печатается только маска.
- */
-
 require('dotenv').config();
 
 const nodemailer = require('nodemailer');
@@ -21,9 +10,6 @@ const PORT = Number(process.env.SMTP_PORT || 587);
 const SECURE = String(process.env.SMTP_SECURE || '') === 'true' || PORT === 465;
 const USER = (process.env.SMTP_USER || '').trim();
 const PASS_RAW = process.env.SMTP_PASS || '';
-// Google показывает пароль приложения группами по 4 («abcd efgh ijkl mnop»), его часто
-// копируют с пробелами. В SMTP пробелы — часть пароля, поэтому убираем их так же,
-// как это делает src/mail.js, иначе проверка разойдётся с реальной отправкой.
 const PASS = PASS_RAW.replace(/\s+/g, '');
 const RESEND = (process.env.RESEND_API_KEY || '').trim();
 const FROM = process.env.MAIL_FROM || 'Sprice Private <no-reply@sprice.local>';
@@ -39,11 +25,6 @@ function mask(s) {
   return s.slice(0, 2) + '*'.repeat(Math.max(3, s.length - 4)) + s.slice(-2) + '  (' + s.length + ' симв.)';
 }
 
-/**
- * Предполётная проверка формы пароля — до сети. Позволяет сказать «это обычный пароль,
- * а не пароль приложения» сразу, а не после невнятного 535 от Google.
- * Возвращает массив предупреждений (пустой = придраться не к чему).
- */
 function passHints() {
   const out = [];
   if (!PASS) return out;
@@ -63,7 +44,6 @@ function passHints() {
   return out;
 }
 
-/** Понятная расшифровка типовых отказов SMTP */
 function explain(err) {
   const m = String(err.message || '');
   if (/535|Username and Password not accepted|Invalid login/i.test(m)) {
@@ -123,7 +103,6 @@ function explain(err) {
     return;
   }
 
-  // Сначала придираемся к форме пароля — это дешевле, чем ловить 535 от Google.
   const hints = passHints();
   if (hints.length) {
     warn('пароль выглядит подозрительно:');

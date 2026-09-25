@@ -1,22 +1,5 @@
 'use strict';
 
-/**
- * Записать пароль приложения Google в .env — так пароль не нужно передавать в чат.
- *
- * Запуск:
- *   npm run mail:set-pass -- "abcd efgh ijkl mnop"
- *   npm run mail:set-pass -- abcdefghijklmnop
- *
- * Что делает:
- *  - убирает пробелы (Google показывает пароль группами по 4, в SMTP пробелы ломают логин);
- *  - проверяет форму (16 латинских букв/цифр) и предупреждает, если это похоже
- *    на обычный пароль от аккаунта — для SMTP он не подходит;
- *  - обновляет строку SMTP_PASS в .env, не трогая остальные настройки;
- *  - печатает маску, а не сам пароль.
- *
- * Сам пароль попадает только в .env (файл в .gitignore) и никуда больше.
- */
-
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -49,9 +32,6 @@ if (!RAW) {
 
 const PASS = RAW.replace(/\s+/g, '');
 
-// ── проверка формы ─────────────────────────────────────────────────────────
-// notes — просто пояснения, они запись НЕ блокируют.
-// problems — реальные признаки того, что это не пароль приложения.
 const notes = [];
 const problems = [];
 if (RAW !== PASS) notes.push('пробелы убраны (в SMTP они ломают логин — так и надо)');
@@ -80,7 +60,6 @@ if (problems.length) {
   console.log('\n    --force: записываю как есть.\n');
 }
 
-// ── запись в .env ──────────────────────────────────────────────────────────
 let env = fs.existsSync(ENV_PATH) ? fs.readFileSync(ENV_PATH, 'utf8') : '';
 const line = 'SMTP_PASS=' + PASS;
 
@@ -95,7 +74,6 @@ if (/^SMTP_PASS=.*$/m.test(env)) {
 
 fs.writeFileSync(ENV_PATH, env, 'utf8');
 
-// ── итог ───────────────────────────────────────────────────────────────────
 const get = (k) => {
   const m = env.match(new RegExp('^' + k + '=(.*)$', 'm'));
   return m ? m[1].trim() : '';
