@@ -245,7 +245,17 @@ router.post(
     const user = await db.get(`SELECT * FROM users WHERE id = $1`, [id]);
     logEvent('register', { userId: id, emailLower: email, ip: req.ip });
 
-    const { devCode } = await issueCode({ user, purpose: 'verify', locale });
+    // Письмо может не уйти: почта не настроена либо хостинг закрывает исходящий SMTP.
+    // Тогда аккаунт уже вставлен, и повторная попытка упрётся в «email_taken» — человек
+    // останется заперт с неподтверждённым аккаунтом и без кода. Поэтому откатываем вставку.
+    let devCode;
+    try {
+      ({ devCode } = await issueCode({ user, purpose: 'verify', locale }));
+    } catch (e) {
+      await db.run(`DELETE FROM email_codes WHERE user_id = $1`, [id]).catch(() => {});
+      await db.run(`DELETE FROM users WHERE id = $1`, [id]).catch(() => {});
+      throw e;
+    }
 
     res.status(201).json({
       ok: true,

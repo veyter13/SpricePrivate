@@ -194,15 +194,35 @@ async function sendCode({ to, nickname, code, purpose = 'verify', locale = 'ru' 
     return { ok: true, id: (await res.json().catch(() => ({}))).id };
   }
 
-  const info = await transporter.sendMail({
-    from: FROM,
-    to,
-    subject,
-    html,
-    text,
-    ...(REPLY_TO ? { replyTo: REPLY_TO } : {})
-  });
-  return { ok: true, id: info.messageId };
+  try {
+    const info = await transporter.sendMail({
+      from: FROM,
+      to,
+      subject,
+      html,
+      text,
+      ...(REPLY_TO ? { replyTo: REPLY_TO } : {})
+    });
+    return { ok: true, id: info.messageId };
+  } catch (e) {
+    // Отдельный случай — хостинг закрывает исходящий SMTP. Соединение не устанавливается
+    // вовсе, приходит ETIMEDOUT, и выглядит это как «сломан пароль», хотя пароль ни при чём.
+    // Бесплатный план Render блокирует порты 25, 465 и 587, поэтому Gmail по SMTP там не
+    // заработает никогда. Переводим в понятный текст, иначе причину ищут не там.
+    const code = (e && (e.code || (e.cause && e.cause.code))) || '';
+    if (['ETIMEDOUT', 'ESOCKET', 'ECONNREFUSED', 'ECONNRESET', 'EHOSTUNREACH'].includes(code)) {
+      throw new Error(
+        'SMTP недоступен (' +
+          code +
+          '): хостинг блокирует исходящие соединения на порт ' +
+          (process.env.SMTP_PORT || 587) +
+          '. На бесплатном плане Render порты 25, 465 и 587 закрыты, поэтому Gmail по SMTP ' +
+          'не заработает. Нужен провайдер с отправкой по HTTPS — задай RESEND_API_KEY, ' +
+          'и режим переключится на него сам.'
+      );
+    }
+    throw e;
+  }
 }
 
 /**
