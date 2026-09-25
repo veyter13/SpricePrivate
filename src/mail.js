@@ -13,7 +13,14 @@
 
 const nodemailer = require('nodemailer');
 
-const FROM = process.env.MAIL_FROM || 'Sprice Private <no-reply@sprice.local>';
+// Отправитель. Gmail (и большинство SMTP) требует, чтобы адрес в From совпадал
+// с логином — иначе письмо уйдёт в спам или будет отклонено. Поэтому если
+// MAIL_FROM не задан, берём его из SMTP_USER: меньше полей для настройки.
+const FROM =
+  process.env.MAIL_FROM ||
+  (process.env.SMTP_USER
+    ? 'Sprice Private <' + process.env.SMTP_USER + '>'
+    : 'Sprice Private <no-reply@sprice.local>');
 const REPLY_TO = process.env.MAIL_REPLY_TO || '';
 const SITE = process.env.SITE_URL || 'https://spriceprivate.onrender.com';
 

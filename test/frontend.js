@@ -36,22 +36,43 @@ function check(name, cond, extra) {
 /* ── запуск приложения ── */
 const dbFile = path.join(os.tmpdir(), 'sprice-fe-' + Date.now() + '.db');
 let serverOut = '';
-const app = spawn(process.execPath, ['server.js'], {
-  cwd: ROOT,
-  env: Object.assign({}, process.env, {
-    PORT: String(APP_PORT),
-    SQLITE_PATH: dbFile,
-    CODE_PEPPER: 'frontend-test-pepper',
-    NODE_ENV: 'test',
-    RESEND_COOLDOWN_SEC: '2',
-    DATABASE_URL: '',
-    RESEND_API_KEY: '',
-    SMTP_HOST: ''
-  }),
-  stdio: ['ignore', 'pipe', 'pipe']
-});
-app.stdout.on('data', (d) => { serverOut += d.toString(); });
-app.stderr.on('data', (d) => { serverOut += d.toString(); });
+let app = null;
+
+/**
+ * Порт обязан быть свободен ДО старта.
+ *
+ * Иначе тест подключается к чужому серверу (например, к оставленному висеть
+ * серверу предпросмотра), читает чужую базу и падает совершенно непонятно:
+ * свой сервер не может занять порт, `serverOut` пустой, «кода нет в логе»,
+ * регистрация уходит не туда. Лучше упасть сразу и с внятным текстом.
+ */
+function assertPortFree(port) {
+  return new Promise((resolve) => {
+    const srv = require('node:net').createServer();
+    srv.once('error', (e) => resolve(e.code !== 'EADDRINUSE'));
+    srv.once('listening', () => srv.close(() => resolve(true)));
+    srv.listen(port, '127.0.0.1');
+  });
+}
+
+function startApp() {
+  app = spawn(process.execPath, ['server.js'], {
+    cwd: ROOT,
+    env: Object.assign({}, process.env, {
+      PORT: String(APP_PORT),
+      SQLITE_PATH: dbFile,
+      CODE_PEPPER: 'frontend-test-pepper',
+      NODE_ENV: 'test',
+      RESEND_COOLDOWN_SEC: '2',
+      DATABASE_URL: '',
+      RESEND_API_KEY: '',
+      SMTP_HOST: ''
+    }),
+    stdio: ['ignore', 'pipe', 'pipe']
+  });
+  app.stdout.on('data', (d) => { serverOut += d.toString(); });
+  app.stderr.on('data', (d) => { serverOut += d.toString(); });
+}
 
 /** Последний код подтверждения из логов сервера (DEV-режим почты) */
 function lastCode() {
@@ -127,6 +148,15 @@ async function run(send, expr) {
 (async () => {
   let client = null;
   let chrome = null;
+
+  /* Порт проверяем ДО старта — иначе тест незаметно уйдёт на чужой сервер */
+  if (!(await assertPortFree(APP_PORT))) {
+    console.log('\nПорт ' + APP_PORT + ' уже занят.');
+    console.log('Скорее всего остался висеть сервер предпросмотра или прошлый прогон.');
+    console.log('Останови его и запусти тест снова — иначе результаты будут врать.\n');
+    process.exit(1);
+  }
+  startApp();
 
   try {
     /* ждём старта приложения */
@@ -503,7 +533,7 @@ async function run(send, expr) {
   } finally {
     if (client) client.close();
     if (chrome) chrome.kill();
-    app.kill();
+    if (app) app.kill();
     try { fs.unlinkSync(dbFile); } catch (e) {}
   }
 

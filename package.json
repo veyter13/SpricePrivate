@@ -13,7 +13,8 @@
     "dev": "node --watch server.js",
     "test": "node test/e2e.js && node test/frontend.js",
     "test:api": "node test/e2e.js",
-    "test:ui": "node test/frontend.js"
+    "test:ui": "node test/frontend.js",
+    "mail:check": "node test/smtp.js"
   },
   "dependencies": {
     "cookie-parser": "^1.4.7",

@@ -50,9 +50,11 @@ npm start                 # http://localhost:3000
 ## Тесты
 
 ```bash
-npm test              # оба набора
-node test/e2e.js      # 66 проверок API на SQLite в памяти
-node test/frontend.js # 64 проверки реального UI в Chrome через CDP
+npm test                    # оба набора
+node test/e2e.js            # 66 проверок API на SQLite в памяти
+node test/frontend.js       # 64 проверки реального UI в Chrome через CDP
+npm run mail:check          # проверить настройки почты из .env
+npm run mail:check -- me@mail.ru   # + отправить тестовое письмо
 ```
 
 `test/frontend.js` поднимает сервер, запускает headless Chrome, проходит путь
@@ -79,8 +81,9 @@ node test/frontend.js # 64 проверки реального UI в Chrome че
 |---|---|
 | `DATABASE_URL` | Подключение к PostgreSQL. Подставляется из базы Render |
 | `CODE_PEPPER` | Секрет для HMAC-хеша кодов подтверждения |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | Отправка через SMTP |
-| `RESEND_API_KEY`, `MAIL_FROM` | Отправка через Resend (HTTP API) |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS` | Отправка через SMTP |
+| `RESEND_API_KEY` | Отправка через Resend (HTTP API) |
+| `MAIL_FROM`, `MAIL_REPLY_TO` | Отправитель и обратный адрес. Пусто → подставится `SMTP_USER` |
 | `SITE_URL` | Адрес сайта — попадает в письма |
 | `CODE_TTL_MINUTES` | Сколько минут живёт код (по умолчанию 10) |
 | `CODE_MAX_ATTEMPTS` | Попыток ввода кода (по умолчанию 5) |
@@ -94,18 +97,43 @@ node test/frontend.js # 64 проверки реального UI в Chrome че
 подтверждение домена, затем в Render добавь `RESEND_API_KEY`. Если своего домена
 нет — для теста работает `MAIL_FROM="Sprice <onboarding@resend.dev>"`.
 
-**2. Gmail через пароль приложения.** Нужен домен Google и 2FA:
+**2. Gmail.**
+
+Обычный пароль от Google-аккаунта для SMTP **не подходит** — Google отвечает
+`535 Username and Password not accepted`. Нужен **пароль приложения**:
+
+1. Включи двухэтапную аутентификацию: <https://myaccount.google.com/security>.
+   Без неё раздел с паролями приложений просто недоступен.
+2. Создай пароль приложения: <https://myaccount.google.com/apppasswords>.
+   Название любое, например `Sprice Private`.
+3. Скопируй 16 символов. Google показывает их группами по 4
+   (`abcd efgh ijkl mnop`) — **пробелы убери**, вставляй слитно.
 
 ```
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=465
-SMTP_USER=you@gmail.com
-SMTP_PASS=abcd efgh ijkl mnop   # пароль приложения, не обычный пароль
-MAIL_FROM="Sprice Private <you@gmail.com>"
+SMTP_SECURE=true
+SMTP_USER=yourname@gmail.com
+SMTP_PASS=abcdefghijklmnop        # 16 символов, без пробелов
 ```
 
-**3. Brevo / Mailgun / Yandex 360** — любой SMTP-провайдер, просто заполни
-`SMTP_*`.
+`MAIL_FROM` можно не задавать — подставится `SMTP_USER`. Для Gmail это и нужно:
+адрес отправителя обязан совпадать с логином, иначе письма уйдут в спам.
+
+Проверить настройки, не запуская сайт:
+
+```bash
+npm run mail:check                    # только вход
+npm run mail:check -- mail@mail.ru    # ещё и тестовое письмо
+```
+
+Если пароль не подойдёт, команда объяснит причину по-человечески.
+
+**Лимит Gmail** — около 500 писем в сутки с обычного аккаунта. Для старта хватает
+с запасом; когда пойдёт поток, переходи на Resend или Brevo.
+
+**3. Brevo / Mailgun / Yandex 360** — любой SMTP-провайдер. Обычно порт 587 и
+`SMTP_SECURE=false` (STARTTLS).
 
 Пока ничего не задано, сайт работает: код видно в логах Render
 (**Logs** → вкладка сервиса).
@@ -163,7 +191,7 @@ src/mail.js        Resend / SMTP / DEV-режим, шаблоны писем
 src/catalog.js     Продукты и тарифы — источник истины по ценам
 src/routes/        auth.js, orders.js
 public/index.html  Весь фронтенд: разметка, стили, скрипт, словарь RU/EN
-test/              e2e.js (API), frontend.js (UI в Chrome)
+test/              e2e.js (API), frontend.js (UI в Chrome), smtp.js (почта)
 ```
 
 Фронтенд открывает страницу продукта по хешу `#p=<id>` — работает кнопка

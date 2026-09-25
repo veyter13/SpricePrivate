@@ -2,6 +2,8 @@
 .workbuddy-ai/
 _*.py
 _*.js
+_*.html
+_*.png
 _shots/
 *.log
 

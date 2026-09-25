@@ -37,16 +37,26 @@ services:
       - key: SITE_URL
         value: https://sprice-private.onrender.com
 
+      # Адрес отправителя. Если оставить пустым — подставится SMTP_USER,
+      # что для Gmail и нужно: From обязан совпадать с логином.
       - key: MAIL_FROM
-        value: Sprice Private <no-reply@sprice.example>
+        sync: false
 
       # ─── Почта: заполнить ОДИН из вариантов в панели Render ───
+      # Вариант 1 — Resend: просто вставь ключ.
       - key: RESEND_API_KEY
         sync: false
+
+      # Вариант 2 — Gmail. Хост и порт уже заданы, вставь только
+      # SMTP_USER (адрес целиком, вида name@gmail.com) и SMTP_PASS —
+      # это «пароль приложения» из 16 символов, НЕ обычный пароль от аккаунта.
+      # Получить: https://myaccount.google.com/apppasswords (нужна включённая 2FA)
       - key: SMTP_HOST
-        sync: false
+        value: smtp.gmail.com
       - key: SMTP_PORT
-        value: 587
+        value: 465
+      - key: SMTP_SECURE
+        value: true
       - key: SMTP_USER
         sync: false
       - key: SMTP_PASS
