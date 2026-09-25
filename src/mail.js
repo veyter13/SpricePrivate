@@ -205,4 +205,22 @@ async function sendCode({ to, nickname, code, purpose = 'verify', locale = 'ru' 
   return { ok: true, id: info.messageId };
 }
 
-module.exports = { init, sendCode, getMode: () => mode };
+/**
+ * Какие настройки почты вообще присутствуют на сервере — только да/нет, без значений.
+ * Нужно, чтобы диагностировать «код не приходит» одним запросом к /healthz, не заходя
+ * в панель хостинга: режим dev сам по себе не говорит, чего именно не хватает.
+ * Секретов здесь нет: наружу уходят только булевы флаги.
+ */
+function envPresence() {
+  return {
+    resend: !!process.env.RESEND_API_KEY,
+    host: !!process.env.SMTP_HOST,
+    port: !!process.env.SMTP_PORT,
+    secure: !!process.env.SMTP_SECURE,
+    user: !!process.env.SMTP_USER,
+    pass: !!SMTP_PASS,
+    from: !!process.env.MAIL_FROM
+  };
+}
+
+module.exports = { init, sendCode, getMode: () => mode, envPresence };

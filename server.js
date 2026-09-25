@@ -91,6 +91,9 @@ app.get('/healthz', async (req, res) => {
       ok: true,
       db: db.DRIVER,
       mail: mail.getMode(),
+      // какие из настроек почты заданы (только да/нет) — чтобы «код не приходит»
+      // диагностировался одним запросом, без похода в панель хостинга
+      mailEnv: mail.envPresence(),
       products: catalog.IDS.length,
       uptime: Math.round(process.uptime())
     });
