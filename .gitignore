@@ -4,6 +4,9 @@ _*.py
 _*.js
 _*.html
 _*.png
+_*.sh
+_*.txt
+_*.ndjson
 _shots/
 *.log
 
