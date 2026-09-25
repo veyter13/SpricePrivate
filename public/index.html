@@ -1318,6 +1318,17 @@
     }
     .auth__code-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 2px; }
     .auth__code-hint { display: inline-block; margin-top: 4px; font-size: 0.76rem; color: var(--text-3); }
+    .devcode {
+      margin-top: 10px; padding: 10px 12px; text-align: center;
+      border: 1px dashed var(--border-hover); border-radius: var(--r-sm);
+      background: var(--input-bg);
+    }
+    .devcode__label { display: block; font-size: 0.74rem; color: var(--text-3); }
+    .devcode__value {
+      display: block; margin-top: 4px;
+      font-family: var(--font-mono); font-size: 1.2rem; font-weight: 700;
+      letter-spacing: 0.3em; color: var(--text);
+    }
     .order--off { opacity: 0.55; }
     .order--off .order__p { text-decoration: line-through; }
 
@@ -2068,6 +2079,13 @@
             <input class="code__cell" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Цифра 6" data-code-cell>
           </div>
           <em class="field__msg" id="mCode"></em>
+          <!-- DEV-режим: на сервере не настроена почта, письмо уйти не может,
+               но код сервер вернул в ответе. Показываем его прямо здесь — иначе
+               регистрация превращается в тупик: экран ввода есть, письма нет. -->
+          <div class="devcode" id="devCodeBox" hidden>
+            <span class="devcode__label" data-i18n="code.devLabel">Почта на сервере не настроена — код показан здесь</span>
+            <b class="devcode__value" id="devCodeValue"></b>
+          </div>
         </div>
 
         <!-- режим сброса: новый пароль после верного кода -->
@@ -3077,6 +3095,7 @@
           'toast.sessionEnded': 'Сессия завершена',
           'toast.orderSaved': 'Заказ «{name}» сохранён в профиле',
           'toast.needVerify': 'Подтверди почту — код отправлен на {mail}',
+          'toast.devCode': 'Почта на сервере не настроена — код показан на экране',
           'toast.resetDone': 'Пароль обновлён — войди с новым',
 
           'code.leadVerify': 'Мы отправили код на <b>{mail}</b>. Введи его, чтобы подтвердить почту.',
@@ -3087,6 +3106,7 @@
           'code.resendIn': 'Заново через {sec} с',
           'code.sent': 'Код отправлен повторно',
           'code.checkSpam': 'Письма нет? Загляни в «Спам».',
+          'code.devLabel': 'Почта на сервере не настроена — код показан здесь',
           'code.sendBtn': 'Отправить код',
           'code.saveBtn': 'Сохранить пароль',
           'code.backToLogin': '← Ко входу',
@@ -3308,6 +3328,7 @@
           'toast.sessionEnded': 'Session ended',
           'toast.orderSaved': 'Order "{name}" saved to your profile',
           'toast.needVerify': 'Confirm your email — the code was sent to {mail}',
+          'toast.devCode': 'Email is not set up on the server — the code is shown on screen',
           'toast.resetDone': 'Password updated — sign in with the new one',
 
           'code.leadVerify': 'We sent a code to <b>{mail}</b>. Enter it to confirm your email.',
@@ -3318,6 +3339,7 @@
           'code.resendIn': 'Resend in {sec}s',
           'code.sent': 'Code sent again',
           'code.checkSpam': 'No email? Check your spam folder.',
+          'code.devLabel': 'Email is not configured on the server — the code is shown here',
           'code.sendBtn': 'Send the code',
           'code.saveBtn': 'Save the password',
           'code.backToLogin': '← Back to sign in',
@@ -3761,6 +3783,8 @@
       var codeErrText = document.getElementById('codeErrText');
       var codeBtn = document.getElementById('codeBtn');
       var codeResend = document.getElementById('codeResend');
+      var devCodeBox = document.getElementById('devCodeBox');
+      var devCodeValue = document.getElementById('devCodeValue');
       var codeBack = document.getElementById('codeBack');
       var fCodeMail = document.getElementById('fCodeMail');
       var codeMail = document.getElementById('codeMail');
@@ -4089,7 +4113,17 @@
       function clearCode() {
         codeCells.forEach(function (c) { c.value = ''; c.classList.remove('filled'); });
         if (codeWrap) codeWrap.classList.remove('bad');
+        hideDevCode();
       }
+      /* Код из ответа сервера. Приходит только в DEV-режиме, когда письмо уйти
+         не может; в рабочем режиме поля devCode в ответе нет и блок остаётся скрыт. */
+      function showDevCode(code) {
+        if (!devCodeBox || !devCodeValue) return;
+        if (!code) { devCodeBox.hidden = true; devCodeValue.textContent = ''; return; }
+        devCodeValue.textContent = String(code);
+        devCodeBox.hidden = false;
+      }
+      function hideDevCode() { showDevCode(null); }
       function focusCell(i) {
         if (codeCells[i]) { try { codeCells[i].focus(); } catch (e) {} }
       }
@@ -4391,7 +4425,9 @@
             clearCode();
             focusCell(0);
             startResendCountdown(RESEND_COOLDOWN);
-            toast(t('code.sent'), 'ok');
+            showDevCode(res && res.devCode);
+            if (res && res.devCode) toast(t('toast.devCode'), 'info');
+            else toast(t('code.sent'), 'ok');
           }).catch(function (err) {
             if (err.code === 'too_soon' && err.data && err.data.retryAfter) startResendCountdown(err.data.retryAfter);
             showErr(codeErr, codeErrText, apiMessage(err));
@@ -4431,7 +4467,9 @@
               nickname: res.nickname,
               remember: loginRemember.checked
             }, 'code');
-            toast(t('toast.needVerify', { mail: res.email }), 'info');
+            showDevCode(res.devCode);
+            if (res.devCode) toast(t('toast.devCode'), 'info');
+            else toast(t('toast.needVerify', { mail: res.email }), 'info');
             return;
           }
           loginPw.value = '';
@@ -4477,7 +4515,9 @@
             nickname: res.nickname,
             remember: regRemember.checked
           }, 'code');
-          toast(t('toast.needVerify', { mail: res.email }), 'info');
+          showDevCode(res.devCode);
+          if (res.devCode) toast(t('toast.devCode'), 'info');
+          else toast(t('toast.needVerify', { mail: res.email }), 'info');
         }).catch(function (err) {
           busy(regBtn, false);
           if (err.code === 'email_taken') markField('fRegMail', 'mRegMail', t('err.reg.mailfield'));
