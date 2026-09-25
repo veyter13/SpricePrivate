@@ -1,0 +1,8 @@
+# Служебные файлы рабочей сессии — в репозиторий не попадают
+.workbuddy-ai/
+_*.py
+_*.js
+_shots/
+*.log
+Thumbs.db
+desktop.ini
