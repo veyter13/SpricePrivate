@@ -3122,6 +3122,7 @@
           'err.mail.resetHint': 'Если такая почта зарегистрирована — письмо уже в пути.',
           'err.network': 'Нет связи с сервером. Проверь интернет и попробуй снова.',
           'err.server': 'Что-то сломалось на сервере. Попробуй позже.',
+          'err.mail': 'Почта на сервере сейчас не отвечает — код отправить не получилось. Напиши нам напрямую, аккаунт создадим вручную.',
           'err.rate': 'Слишком много попыток. Подожди минуту.',
           'err.verified': 'Сначала подтверди почту.'
         },
@@ -3355,6 +3356,7 @@
           'err.mail.resetHint': 'If that email is registered, the message is on its way.',
           'err.network': 'Cannot reach the server. Check your connection and try again.',
           'err.server': 'Something broke on the server. Try again later.',
+          'err.mail': 'The mail server is not responding, so the code could not be sent. Contact us directly and we will create the account manually.',
           'err.rate': 'Too many attempts. Wait a minute.',
           'err.verified': 'Confirm your email first.'
         }
@@ -3854,6 +3856,7 @@
         var d = (err && err.data) || {};
         if (c === 'network') return t('err.network');
         if (c === 'rate_limited') return t('err.rate');
+        if (c === 'mail_unavailable') return t('err.mail');
         if (c === 'email_taken') return t('err.reg.mail');
         if (c === 'nickname_taken') return t('err.reg.nick');
         if (c === 'nickname_invalid') return t('val.name.chars');

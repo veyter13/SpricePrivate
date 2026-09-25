@@ -189,7 +189,9 @@ async function sendCode({ to, nickname, code, purpose = 'verify', locale = 'ru' 
     });
     if (!res.ok) {
       const body = await res.text().catch(() => '');
-      throw new Error('Resend ' + res.status + ': ' + body.slice(0, 300));
+      const err = new Error('Resend ' + res.status + ': ' + body.slice(0, 300));
+      err.code = 'mail_unavailable';
+      throw err;
     }
     return { ok: true, id: (await res.json().catch(() => ({}))).id };
   }
@@ -211,7 +213,7 @@ async function sendCode({ to, nickname, code, purpose = 'verify', locale = 'ru' 
     // заработает никогда. Переводим в понятный текст, иначе причину ищут не там.
     const code = (e && (e.code || (e.cause && e.cause.code))) || '';
     if (['ETIMEDOUT', 'ESOCKET', 'ECONNREFUSED', 'ECONNRESET', 'EHOSTUNREACH'].includes(code)) {
-      throw new Error(
+      const err = new Error(
         'SMTP недоступен (' +
           code +
           '): хостинг блокирует исходящие соединения на порт ' +
@@ -220,6 +222,9 @@ async function sendCode({ to, nickname, code, purpose = 'verify', locale = 'ru' 
           'не заработает. Нужен провайдер с отправкой по HTTPS — задай RESEND_API_KEY, ' +
           'и режим переключится на него сам.'
       );
+      // Отдельный код: наружу уйдёт понятная фраза, подробности останутся в логе сервера.
+      err.code = 'mail_unavailable';
+      throw err;
     }
     throw e;
   }
