@@ -192,9 +192,21 @@ async function run(send, expr) {
         panel: $('regForm').hidden ? 'login' : 'reg',
         sub: $('authSub').textContent
       };
+      const mail = $('regMail');
+      mail.value = 'user@почта.рф';
+      mail.dispatchEvent(new Event('blur'));
+      await sleep(250);
+      const errRu = $('mRegMail').textContent;
+      q('.lang-switch__btn[data-lang=en]').click();
+      await waitFor(() => document.documentElement.lang === 'en', 5000);
+      await sleep(450);
+      const errEn = $('mRegMail').textContent;
+      q('.lang-switch__btn[data-lang=ru]').click();
+      await waitFor(() => document.documentElement.lang === 'ru', 5000);
+      await sleep(450);
       $('authClose').click();
       await sleep(350);
-      return JSON.stringify({ before, after });
+      return JSON.stringify({ before, after, errRu, errEn });
     })()`);
     check('гейт оплаты отработал без ошибок JS', gate && !gate.__error, gate);
     const g = gate && !gate.__error ? JSON.parse(gate) : {};
@@ -205,6 +217,8 @@ async function run(send, expr) {
     check('гостю написано, что нужна регистрация', /регистрация/i.test(gb.hint || ''), gb.hint);
     check('клик по оплате не платит, а открывает регистрацию', ga.authOpen === true && ga.panel === 'reg' && ga.modalClosed === true, ga);
     check('в окне регистрации сказано про оплату', /оплате/i.test(ga.sub || ''), ga.sub);
+    check('сообщение об ошибке появляется на русском', /опечатк/i.test(g.errRu || ''), g.errRu);
+    check('после смены языка старое сообщение не осталось', g.errEn === '', g.errEn);
 
     console.log('\n─── 2. Регистрация через форму ───');
     const reg = await run(send, `(async () => { ${HELPERS}
@@ -213,7 +227,17 @@ async function run(send, expr) {
       $('tabReg').click();
       await sleep(300);
       setVal($('regName'), 'frontuser');
+      setVal($('regMail'), 'user@почта.рф');
+      $('regMail').dispatchEvent(new Event('blur'));
+      await sleep(250);
+      const cyrErr = $('mRegMail').textContent;
+      const note = document.querySelector('#fRegMail .field__note');
+      const noteText = note ? note.textContent : '';
+      const noteColor = note ? getComputedStyle(note).color : '';
       setVal($('regMail'), 'front@test.ru');
+      $('regMail').dispatchEvent(new Event('blur'));
+      await sleep(250);
+      const cyrCleared = $('mRegMail').textContent === '';
       setVal($('regPw'), 'FrontPass1');
       setVal($('regPw2'), 'FrontPass1');
       await sleep(150);
@@ -222,6 +246,10 @@ async function run(send, expr) {
       await sleep(300);
       return JSON.stringify({
         shown,
+        cyrErr,
+        noteText,
+        noteColor,
+        cyrCleared,
         codeVisible: !$('codeForm').hidden,
         loginHidden: $('loginForm').hidden,
         regHidden: $('regForm').hidden,
@@ -242,6 +270,9 @@ async function run(send, expr) {
     check('в подсказке указана почта', /front@test\.ru/.test(r2.lead || ''), r2.lead);
     check('кнопка подтверждения', r2.btn === 'Подтвердить', r2.btn);
     check('таймер повторной отправки идёт', /Заново через \d+ с/.test(r2.resend || ''), r2.resend);
+    check('под полем почты написано, что подойдёт любая', /любая почта/.test(r2.noteText || '') && /Gmail/.test(r2.noteText || ''), r2.noteText);
+    check('адрес с кириллическим доменом отклоняется на месте', /опечатк/i.test(r2.cyrErr || ''), r2.cyrErr);
+    check('после исправления адреса ошибка снялась', r2.cyrCleared === true, r2);
 
     console.log('\n─── 3. Письмо с кодом ───');
     const code = lastCode();

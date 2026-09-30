@@ -1194,6 +1194,7 @@
     .field.bad input { border-color: var(--con); box-shadow: 0 0 0 3px var(--con-bg); }
     .field__msg { display: block; font-style: normal; font-size: 0.73rem; line-height: 1.4; color: var(--con); }
     .field__msg:empty { display: none; }
+    .field__note { margin: 7px 0 0; font-size: 0.73rem; line-height: 1.45; color: var(--text-2); }
 
     .pw-meter { display: flex; gap: 5px; margin-top: 3px; }
     .pw-meter i { flex: 1; height: 3px; border-radius: 3px; background: var(--border-soft); transition: background 0.35s var(--ease); }
@@ -1982,6 +1983,7 @@
             <input type="email" id="regMail" autocomplete="email" placeholder="mail@mail.ru" spellcheck="false" data-i18n-ph="auth.ph.mail">
           </div>
           <em class="field__msg" id="mRegMail"></em>
+          <p class="field__note" data-i18n="auth.mailNote">Подойдёт любая почта — Gmail, Mail.ru, Яндекс, Outlook.</p>
         </div>
 
         <div class="field" id="fRegPw">
@@ -3058,6 +3060,7 @@
           'auth.ph.nickName': 'sprice',
           'auth.email': 'E-mail',
           'auth.ph.mail': 'mail@mail.ru',
+          'auth.mailNote': 'Подойдёт любая почта — Gmail, Mail.ru, Яндекс, Outlook.',
           'auth.ph.min6': 'минимум 6 символов',
           'auth.repeat': 'Повтори пароль',
           'auth.ph.again': 'ещё раз',
@@ -3300,6 +3303,7 @@
           'auth.ph.nickName': 'sprice',
           'auth.email': 'E-mail',
           'auth.ph.mail': 'mail@mail.ru',
+          'auth.mailNote': 'Any e-mail works — Gmail, Mail.ru, Yandex, Outlook.',
           'auth.ph.min6': 'at least 6 characters',
           'auth.repeat': 'Repeat password',
           'auth.ph.again': 'once more',
@@ -3883,7 +3887,7 @@
       }
 
       var RE_NAME = /^[A-Za-z0-9_.\-А-Яа-яЁё ]{3,20}$/;
-      var RE_MAIL = /^[^\s@]+@[^\s@]+\.[A-Za-zА-Яа-яЁё]{2,}$/;
+      var RE_MAIL = /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/;
 
       function checkName(v) {
         v = String(v || '').trim();
@@ -4037,6 +4041,13 @@
         return null;
       }
 
+      function clearFieldMessages() {
+        Array.prototype.slice.call(document.querySelectorAll('.field__msg')).forEach(function (msg) {
+          msg.textContent = '';
+          if (msg.parentNode && msg.parentNode.classList) msg.parentNode.classList.remove('bad');
+        });
+      }
+
       function showAuthPanel(panel) {
         var isLogin = panel === 'login', isReg = panel === 'reg', isCode = panel === 'code';
         loginForm.hidden = !isLogin;
@@ -4054,6 +4065,7 @@
         showErr(loginErr, loginErrText, '');
         showErr(regErr, regErrText, '');
         showErr(codeErr, codeErrText, '');
+        clearFieldMessages();
       }
       function switchAuth(mode) {
         authMode = (mode === 'reg') ? 'reg' : 'login';
@@ -4105,6 +4117,7 @@
         codeBack.dataset.text = codeBack.textContent;
         paintResend();
         showErr(codeErr, codeErrText, '');
+        clearFieldMessages();
       }
 
       function codeValue() {
