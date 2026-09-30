@@ -173,6 +173,39 @@ async function run(send, expr) {
     check('6 карточек продуктов', b.cards === 6, b.cards);
     check('кнопка «Войти» видна, меню скрыто', b.authOpenVisible === true && b.userMenuHidden === true, b);
 
+    console.log('\n─── 1b. Оплата без регистрации закрыта ───');
+    const gate = await run(send, `(async () => { ${HELPERS}
+      q('[data-product=matrixhub]').click();
+      await waitFor(() => $('purchaseModal').classList.contains('active'));
+      await sleep(250);
+      const before = {
+        locked: $('modalPay').classList.contains('is-locked'),
+        aria: $('modalPay').getAttribute('aria-disabled'),
+        href: $('modalPay').getAttribute('href') || 'нет',
+        hint: $('modalAuthHintText').textContent
+      };
+      $('modalPay').click();
+      await sleep(800);
+      const after = {
+        modalClosed: !$('purchaseModal').classList.contains('active'),
+        authOpen: $('authModal').classList.contains('active'),
+        panel: $('regForm').hidden ? 'login' : 'reg',
+        sub: $('authSub').textContent
+      };
+      $('authClose').click();
+      await sleep(350);
+      return JSON.stringify({ before, after });
+    })()`);
+    check('гейт оплаты отработал без ошибок JS', gate && !gate.__error, gate);
+    const g = gate && !gate.__error ? JSON.parse(gate) : {};
+    const gb = g.before || {};
+    const ga = g.after || {};
+    check('кнопка оплаты заблокирована для гостя', gb.locked === true && gb.aria === 'true', gb);
+    check('у заблокированной кнопки нет ссылки на оплату', gb.href === 'нет', gb.href);
+    check('гостю написано, что нужна регистрация', /регистрация/i.test(gb.hint || ''), gb.hint);
+    check('клик по оплате не платит, а открывает регистрацию', ga.authOpen === true && ga.panel === 'reg' && ga.modalClosed === true, ga);
+    check('в окне регистрации сказано про оплату', /оплате/i.test(ga.sub || ''), ga.sub);
+
     console.log('\n─── 2. Регистрация через форму ───');
     const reg = await run(send, `(async () => { ${HELPERS}
       $('authOpen').click();
@@ -456,6 +489,77 @@ async function run(send, expr) {
     check('вход по нику и паролю прошёл', l11.loggedIn === true && l11.nick === 'frontuser', l11);
     check('после выхода вернулась кнопка «Войти»', l11.afterLogout === true, l11);
     check('ник подставлен в форму входа', l11.loginPrefilled === 'frontuser', l11.loginPrefilled);
+
+    console.log('\n─── 11b. Регистрация из окна оплаты ───');
+    const gateStart = await run(send, `(async () => { ${HELPERS}
+      q('[data-product=potassium]').click();
+      await waitFor(() => $('purchaseModal').classList.contains('active'));
+      await sleep(300);
+      const plans = Array.from(document.querySelectorAll('#purchaseModal .plan'));
+      plans[1].click();
+      await sleep(250);
+      const chosen = $('modalSelected').textContent;
+      $('modalPay').click();
+      await waitFor(() => $('authModal').classList.contains('active') && !$('regForm').hidden, 6000);
+      await sleep(300);
+      const panel = $('regForm').hidden ? 'нет' : 'да';
+      setVal($('regName'), 'gateuser');
+      setVal($('regMail'), 'gate@test.ru');
+      setVal($('regPw'), 'GatePass1');
+      setVal($('regPw2'), 'GatePass1');
+      await sleep(150);
+      submit($('regForm'));
+      const codeShown = await waitFor(() => !$('codeForm').hidden, 8000);
+      await sleep(250);
+      return JSON.stringify({ chosen, panel, codeShown });
+    })()`);
+    check('переход к регистрации из оплаты без ошибок JS', gateStart && !gateStart.__error, gateStart);
+    const gs = gateStart && !gateStart.__error ? JSON.parse(gateStart) : {};
+    check('тариф выбран ещё до регистрации', /Навсегда/.test(gs.chosen || ''), gs.chosen);
+    check('открылась форма регистрации, затем шаг кода', gs.panel === 'да' && gs.codeShown === true, gs);
+
+    const gateCode = lastCode();
+    check('код для gate@test.ru сформирован', /^\d{6}$/.test(String(gateCode)), gateCode);
+
+    const gateDone = await run(send, `(async () => { ${HELPERS}
+      const cells = [...document.querySelectorAll('[data-code-cell]')];
+      const good = ${JSON.stringify(String(gateCode))};
+      cells.forEach((c, i) => { c.value = good[i]; c.dispatchEvent(new Event('input', { bubbles: true })); });
+      await waitFor(() => !$('userMenu').hidden, 10000);
+      await sleep(600);
+      const pay = $('modalPay');
+      return JSON.stringify({
+        loggedIn: !$('userMenu').hidden,
+        nick: $('userNm').textContent,
+        modalBack: $('purchaseModal').classList.contains('active'),
+        title: $('modalProductName').textContent,
+        selected: $('modalSelected').textContent,
+        locked: pay.classList.contains('is-locked'),
+        href: pay.getAttribute('href') || 'нет',
+        hint: $('modalAuthHintText').textContent
+      });
+    })()`);
+    check('после регистрации из оплаты нет ошибок JS', gateDone && !gateDone.__error, gateDone);
+    const gd = gateDone && !gateDone.__error ? JSON.parse(gateDone) : {};
+    check('аккаунт создан из окна оплаты', gd.loggedIn === true && gd.nick === 'gateuser', gd);
+    check('модалка вернулась к тому же товару', gd.modalBack === true && gd.title === 'Potassium', gd);
+    check('выбранный тариф сохранился', /Навсегда/.test(gd.selected || ''), gd.selected);
+    check('кнопка оплаты разблокирована', gd.locked === false && /funpay\.com/.test(gd.href), gd);
+    check('подсказка переключилась на профиль', /gateuser/.test(gd.hint || ''), gd.hint);
+
+    const gateOrder = await run(send, `(async () => { ${HELPERS}
+      const before = $('dropOrders').textContent;
+      $('modalPay').click();
+      await waitFor(() => $('dropOrders').textContent !== before, 10000);
+      await sleep(300);
+      const after = $('dropOrders').textContent;
+      $('modalClose').click();
+      await sleep(400);
+      return JSON.stringify({ before, after });
+    })()`);
+    check('заказ после регистрации оформился', gateOrder && !gateOrder.__error, gateOrder);
+    const go = gateOrder && !gateOrder.__error ? JSON.parse(gateOrder) : {};
+    check('счётчик заказов вырос', go.before === '0' && go.after === '1', go);
 
     console.log('\n─── 12. Ошибки ───');
     const pageErrs = await run(send, `JSON.stringify(window.__errs || [])`);

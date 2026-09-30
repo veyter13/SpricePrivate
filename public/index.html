@@ -1347,6 +1347,12 @@
     .modal__authhint button { background: none; border: none; padding: 0; cursor: pointer; color: var(--accent); font-weight: 700; font-size: inherit; }
     .modal__authhint button:hover { text-decoration: underline; }
     .modal__authhint svg { width: 15px; height: 15px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .modal__lock { display: none; }
+    .modal__action svg { width: 16px; height: 16px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .modal__action.is-locked { opacity: 0.6; cursor: not-allowed; }
+    .modal__action.is-locked:active { transform: none; }
+    .modal__action.is-locked .modal__lock { display: inline-flex; }
+    .modal__action.shake { animation: shake 0.42s var(--ease); }
 
     .toasts { position: fixed; right: 20px; bottom: 20px; z-index: 1200; display: grid; gap: 10px; pointer-events: none; }
     .toast {
@@ -1896,7 +1902,8 @@
       <div class="plans" id="modalPlans"></div>
       <p class="modal__hint"><span data-i18n="modal.selected">Выбрано:</span> <b id="modalSelected">—</b></p>
 
-      <a href="https://funpay.com/users/16370618/" target="_blank" rel="noopener" class="btn btn--primary modal__action" id="modalPay">
+      <a class="btn btn--primary modal__action is-locked" id="modalPay" role="button" aria-disabled="true" data-funpay="https://funpay.com/users/16370618/">
+        <span class="modal__lock" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4.6" y="10.6" width="14.8" height="9.8" rx="2.2"/><path d="M8.2 10.6V7.6a3.8 3.8 0 0 1 7.6 0v3"/></svg></span>
         <span data-i18n="modal.pay">Перейти к оплате на FunPay</span>
       </a>
     </div>
@@ -3021,12 +3028,15 @@
           'modal.selected': 'Выбрано:',
           'modal.pay': 'Перейти к оплате на FunPay',
           'modal.hint.loggedIn': 'Заказ сохранится в профиле {name}',
-          'modal.hint.guest': 'Войди, чтобы заказ сохранился в профиле — ',
-          'modal.hint.signin': 'войти',
+          'modal.hint.guest': 'Чтобы перейти к оплате, нужна регистрация — ',
+          'modal.hint.unverified': 'Подтверди почту, чтобы перейти к оплате — ',
+          'modal.hint.signin': 'зарегистрироваться',
+          'modal.hint.confirm': 'подтвердить',
 
           'auth.loginBtn': 'Войти',
           'auth.title': 'Личный кабинет',
           'auth.subLogin': 'Войди, чтобы сохранить заказы и историю',
+          'auth.subGate': 'Зарегистрируйся, чтобы перейти к оплате',
           'auth.subReg': 'Создай аккаунт — заказы сохранятся в профиле',
           'auth.tabLogin': 'Вход',
           'auth.tabReg': 'Регистрация',
@@ -3260,12 +3270,15 @@
           'modal.selected': 'Selected:',
           'modal.pay': 'Pay on FunPay',
           'modal.hint.loggedIn': 'The order will be saved to {name}\u2019s profile',
-          'modal.hint.guest': 'Sign in to save the order to your profile — ',
-          'modal.hint.signin': 'sign in',
+          'modal.hint.guest': 'Payment is for registered users only — ',
+          'modal.hint.unverified': 'Confirm your e-mail to pay — ',
+          'modal.hint.signin': 'sign up',
+          'modal.hint.confirm': 'confirm',
 
           'auth.loginBtn': 'Sign in',
           'auth.title': 'Your account',
           'auth.subLogin': 'Sign in to keep your orders and history',
+          'auth.subGate': 'Sign up to proceed to payment',
           'auth.subReg': 'Create an account — your orders will be saved to your profile',
           'auth.tabLogin': 'Sign in',
           'auth.tabReg': 'Sign up',
@@ -3428,7 +3441,7 @@
         if (currentDetail) renderDetail(currentDetail, true);
         if (currentUser) renderAuth();
         if (profileModal && profileModal.classList.contains('active')) renderProfile();
-        if (modal && modal.classList.contains('active')) updatePurchaseHint();
+        if (modal && modal.classList.contains('active')) { updatePurchaseHint(); syncPayButton(); }
         if (authModal && authModal.classList.contains('active')) refreshAuthLang();
       }
 
@@ -3448,6 +3461,7 @@
       var modalPlans = document.getElementById('modalPlans');
       var modalSelected = document.getElementById('modalSelected');
       var modalPay = document.getElementById('modalPay');
+      var modalPayUrl = modalPay ? modalPay.getAttribute('data-funpay') : '';
       var lastFocused = null;
 
       function updateBodyLock() {
@@ -3482,6 +3496,7 @@
           plan: { idx: 0, duration: data.plans[0].duration, price: data.plans[0].price }
         };
         updatePurchaseHint();
+        syncPayButton();
 
         lastFocused = document.activeElement;
         modalName.textContent = data.name;
@@ -3787,6 +3802,8 @@
       var currentUser = null;
       var userOrders = 0;
       var purchaseCtx = null;
+      var pendingPurchase = null;
+      var authGate = false;
       var authMode = 'login';
       var codeCtx = null;
       var codeState = 'code';
@@ -3966,6 +3983,7 @@
         var logged = !!currentUser;
         if (authOpenBtn) authOpenBtn.hidden = logged;
         if (userMenu) userMenu.hidden = !logged;
+        if (modal && modal.classList.contains('active')) { updatePurchaseHint(); syncPayButton(); }
         if (!logged) { closeUserMenu(); return; }
         document.getElementById('userAva').textContent = firstLetter(currentUser.name);
         document.getElementById('userNm').textContent = currentUser.name;
@@ -3984,7 +4002,8 @@
         if (userBtn) userBtn.setAttribute('aria-expanded', 'false');
       }
 
-      function openAuth(mode) {
+      function openAuth(mode, gate) {
+        authGate = !!gate;
         prefillLogin();
         switchAuth(mode || 'login');
         if (authModal) authModal.classList.add('active');
@@ -3997,6 +4016,8 @@
       function closeAuth() {
         if (authModal) authModal.classList.remove('active');
         stopResendCountdown();
+        authGate = false;
+        pendingPurchase = null;
         updateBodyLock();
       }
       function openProfile() {
@@ -4027,7 +4048,7 @@
         tabLogin.setAttribute('aria-selected', String(isLogin));
         tabReg.setAttribute('aria-selected', String(isReg));
         authTabInd.style.transform = isReg ? 'translateX(calc(100% + 4px))' : 'translateX(0)';
-        authSub.textContent = t(isCode ? 'auth.subCode' : (isReg ? 'auth.subReg' : 'auth.subLogin'));
+        authSub.textContent = t(isCode ? 'auth.subCode' : (isReg ? (authGate ? 'auth.subGate' : 'auth.subReg') : 'auth.subLogin'));
         authFoot.hidden = isCode;
         authFoot.innerHTML = isCode ? '' : tHtml(isReg ? 'auth.footReg' : 'auth.footLogin');
         showErr(loginErr, loginErrText, '');
@@ -4225,23 +4246,59 @@
         }).catch(function () { return false; });
       }
 
+      function payReady() {
+        return !!(currentUser && currentUser.verified);
+      }
+
+      function syncPayButton() {
+        if (!modalPay) return;
+        var ready = payReady();
+        modalPay.classList.toggle('is-locked', !ready);
+        modalPay.setAttribute('aria-disabled', ready ? 'false' : 'true');
+        if (ready && modalPayUrl) {
+          modalPay.setAttribute('href', modalPayUrl);
+          modalPay.setAttribute('target', '_blank');
+          modalPay.setAttribute('rel', 'noopener');
+        } else {
+          modalPay.removeAttribute('href');
+          modalPay.removeAttribute('target');
+          modalPay.removeAttribute('rel');
+        }
+      }
+
+      function requireAccount(mode) {
+        if (purchaseCtx) {
+          pendingPurchase = { id: purchaseCtx.id, planIdx: purchaseCtx.plan ? purchaseCtx.plan.idx : 0 };
+        }
+        closeModal();
+        openAuth(mode || 'reg', true);
+      }
+
+      function reopenPurchase(p) {
+        openModal(p.id);
+        var item = modalPlans.children[p.planIdx];
+        if (item) selectPlan(item);
+      }
+
       function updatePurchaseHint() {
         if (!modalAuthHint || !modalAuthHintText) return;
         modalAuthHint.hidden = false;
         modalAuthHintText.innerHTML = '';
-        if (currentUser) {
+        if (payReady()) {
           modalAuthHintText.appendChild(document.createTextNode(t('modal.hint.loggedIn', { name: currentUser.name })));
-        } else {
-          modalAuthHintText.appendChild(document.createTextNode(t('modal.hint.guest')));
-          var b = document.createElement('button');
-          b.type = 'button';
-          b.textContent = t('modal.hint.signin');
-          b.addEventListener('click', function () { closeModal(); openAuth('login'); });
-          modalAuthHintText.appendChild(b);
+          return;
         }
+        var unverified = !!currentUser;
+        modalAuthHintText.appendChild(document.createTextNode(t(unverified ? 'modal.hint.unverified' : 'modal.hint.guest')));
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = t(unverified ? 'modal.hint.confirm' : 'modal.hint.signin');
+        b.addEventListener('click', function () { requireAccount(unverified ? 'login' : 'reg'); });
+        modalAuthHintText.appendChild(b);
       }
 
       function startSession(u, greeting) {
+        var resume = pendingPurchase;
         setUser(u);
         rememberLast({ login: u.nickname, email: u.email });
         codeCtx = null;
@@ -4250,6 +4307,7 @@
         closeAuth();
         toast(greeting || t('toast.welcome', { name: u.nickname }), 'ok');
         loadOrderCount();
+        if (resume) reopenPurchase(resume);
       }
       function logout(silent) {
         var nm = currentUser ? currentUser.name : '';
@@ -4329,8 +4387,15 @@
       document.getElementById('profLogout').addEventListener('click', function () { logout(); });
 
       if (modalPay) {
-        modalPay.addEventListener('click', function () {
-          if (!currentUser || !purchaseCtx) return;
+        modalPay.addEventListener('click', function (e) {
+          if (!payReady()) {
+            e.preventDefault();
+            modalPay.classList.add('shake');
+            setTimeout(function () { modalPay.classList.remove('shake'); }, 460);
+            setTimeout(function () { requireAccount('reg'); }, 240);
+            return;
+          }
+          if (!purchaseCtx) return;
           recordOrder(purchaseCtx.id).then(function (saved) {
             if (saved) {
               toast(t('toast.orderSaved', { name: (pd(purchaseCtx.id) || {}).name || purchaseCtx.name }), 'ok');
