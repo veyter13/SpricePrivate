@@ -312,7 +312,8 @@ curl -s https://<твой-домен>/healthz
 | `vector` | Vector | External |
 | `matrixhub` | MatrixHub | External |
 | `spicemacro` | SpiceMacro | Macro |
-| `spriceoverlay` | SpriceOverlay | External |
+| `spriceoverlay` | SpriceOverlay-Roblox | External |
+| `spriceoverlaycs2` | SpriceOverlay-CS2 | External |
 
 ## Устройство
 

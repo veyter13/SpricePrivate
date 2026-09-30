@@ -43,9 +43,15 @@ const PRODUCTS = {
   },
   spriceoverlay: {
     id: 'spriceoverlay',
-    name: 'SpriceOverlay',
+    name: 'SpriceOverlay-Roblox',
     category: 'external',
     plans: [{ duration: { ru: 'Навсегда', en: 'Forever' }, price: 699 }]
+  },
+  spriceoverlaycs2: {
+    id: 'spriceoverlaycs2',
+    name: 'SpriceOverlay-CS2',
+    category: 'external',
+    plans: [{ duration: { ru: 'Навсегда', en: 'Forever' }, price: 799 }]
   }
 };
 

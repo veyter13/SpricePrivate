@@ -170,7 +170,7 @@ async function run(send, expr) {
     })()`);
     check('страница загрузилась', boot && !boot.__error, boot);
     const b = boot && !boot.__error ? JSON.parse(boot) : {};
-    check('5 карточек продуктов', b.cards === 5, b.cards);
+    check('6 карточек продуктов', b.cards === 6, b.cards);
     check('кнопка «Войти» видна, меню скрыто', b.authOpenVisible === true && b.userMenuHidden === true, b);
 
     console.log('\n─── 2. Регистрация через форму ───');

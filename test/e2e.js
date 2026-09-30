@@ -65,7 +65,7 @@ function client(base) {
     check('GET /healthz отвечает 200', h.status === 200, h.body);
     check('драйвер БД — sqlite (локальный режим)', h.body && h.body.db === 'sqlite', h.body);
     check('почта в DEV-режиме', h.body && h.body.mail === 'dev', h.body);
-    check('каталог загружен: 5 продуктов', h.body && h.body.products === 5, h.body);
+    check('каталог загружен: 6 продуктов', h.body && h.body.products === 6, h.body);
 
     console.log('\n─── 2. Каталог ───');
     const cat = await c.req('GET', '/api/catalog?lang=ru');
