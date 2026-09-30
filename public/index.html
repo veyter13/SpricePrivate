@@ -1642,7 +1642,7 @@
             <span class="tag" data-i18n="card.spriceoverlay.tag">External</span>
           </div>
           <h3 class="card__name">SpriceOverlay-Roblox</h3>
-          <p class="card__desc" data-i18n="card.spriceoverlay.desc">Лёгкий оверлей под Roblox: боксы, дистанция, счётчик кадров. Оплата один раз, обновления бесплатные.</p>
+          <p class="card__desc" data-i18n="card.spriceoverlay.desc">Лёгкий оверлей под Roblox: боксы, дистанция, счётчик кадров. Обновления бесплатные.</p>
           <div class="card__feats">
             <span class="feat" data-i18n="card.spriceoverlay.f1">Оверлей</span>
             <span class="feat" data-i18n="card.spriceoverlay.f2">Roblox</span>
@@ -1665,13 +1665,13 @@
             <span class="tag" data-i18n="card.spriceoverlaycs2.tag">External</span>
           </div>
           <h3 class="card__name">SpriceOverlay-CS2</h3>
-          <p class="card__desc" data-i18n="card.spriceoverlaycs2.desc">Оверлей под CS2: боксы, скелет, дистанция и панель с FPS. Оплата один раз, обновления бесплатные.</p>
+          <p class="card__desc" data-i18n="card.spriceoverlaycs2.desc">Оверлей под CS2: боксы, скелет, дистанция и панель с FPS. Обновления бесплатные.</p>
           <div class="card__feats">
             <span class="feat" data-i18n="card.spriceoverlaycs2.f1">Оверлей</span>
             <span class="feat" data-i18n="card.spriceoverlaycs2.f2">CS2</span>
           </div>
           <div class="card__footer">
-            <div class="price">799 ₽ <small data-i18n="unit.forever">/ навсегда</small></div>
+            <div class="price">599 ₽ <small data-i18n="unit.perMonth">/ мес</small></div>
             <button class="btn btn--primary" data-product="spriceoverlaycs2" data-i18n="btn.choosePlan">Выбрать тариф</button>
           </div>
           <span class="card__more"><span data-i18n="card.more">Подробнее о продукте</span>
@@ -2478,6 +2478,16 @@
         return fallback || '';
       }
 
+      function minPlanPrice(plans) {
+        var best = plans[0];
+        var bestNum = Number(String(best.price).replace(/[^0-9]/g, ''));
+        plans.forEach(function (x) {
+          var n = Number(String(x.price).replace(/[^0-9]/g, ''));
+          if (n && n < bestNum) { best = x; bestNum = n; }
+        });
+        return best.price;
+      }
+
       var products = {
         potassium: {
           name: 'Potassium',
@@ -2616,7 +2626,7 @@
         spriceoverlay: {
           name: 'SpriceOverlay-Roblox',
           tag: 'External',
-          lead: 'Облегчённый оверлей под Roblox: только то, что реально нужно — боксы, дистанция и счётчик кадров. Оплата один раз, без подписки.',
+          lead: 'Облегчённый оверлей под Roblox: только то, что реально нужно — боксы, дистанция и счётчик кадров. На месяц или навсегда — на выбор.',
           price: '699 ₽', per: 'навсегда',
           features: [
             'ESP: боксы и дистанция до цели',
@@ -2624,54 +2634,56 @@
             'Отдельное окно-оверлей, переключается хоткеем',
             'Работает поверх окна — в процесс игры не лезет',
             'Нагрузка минимальная, кадры не проседают',
-            'Оплата один раз, обновления бесплатные'
+            'Обновления на всём сроке — доплачивать не нужно'
           ],
           specs: [
             ['Платформа', 'Windows 10 / 11 x64'],
             ['Тип', 'External, оверлей'],
             ['Игра', 'Roblox'],
-            ['Оплата', 'один раз'],
+            ['Оплата', 'разово или по месяцам'],
             ['Обновления', 'бесплатно'],
             ['Выдача', 'сразу после оплаты']
           ],
           about: [
             'SpriceOverlay-Roblox — для тех, кому не нужен комбайн. Только оверлей: боксы, дистанция и небольшая панель со счётчиком кадров. Запустил, повесил на хоткей, играешь.',
-            'Нагрузка минимальная — он не трогает саму игру, а просто рисует поверх окна. Платишь один раз, обновления приходят бесплатно: подписок и продлений нет.'
+            'Нагрузка минимальная — он не трогает саму игру, а просто рисует поверх окна. Можно взять на месяц или навсегда; обновления приходят на всём сроке, доплачивать за них не нужно.'
           ],
           shots: SHOTS.spriceoverlay,
           plans: [
-            { duration: 'Навсегда', price: '699 ₽' }
+            { duration: 'Навсегда', price: '699 ₽' },
+            { duration: '1 Месяц', price: '399 ₽' }
           ]
         },
         spriceoverlaycs2: {
           name: 'SpriceOverlay-CS2',
           tag: 'External',
           lead: 'Оверлей под Counter-Strike 2: боксы, скелет, дистанция и панель со счётчиком кадров. Работает поверх окна — в процесс игры не лезет.',
-          price: '799 ₽', per: 'навсегда',
+          price: '599 ₽', per: 'за месяц',
           features: [
             'ESP: боксы, ники, дистанция и полоса здоровья',
             'Скелет и точки попадания — видно, как стоит цель',
             'Инфо-панель: FPS, пинг, состояние соединения',
             'Отдельное окно-оверлей, переключается хоткеем',
             'Работает поверх окна — в процесс игры не лезет',
-            'Оплата один раз, обновления бесплатные'
+            'Обновления на всём сроке — доплачивать не нужно'
           ],
           specs: [
             ['Платформа', 'Windows 10 / 11 x64'],
             ['Тип', 'External, оверлей'],
             ['Игра', 'Counter-Strike 2'],
             ['Внедрение в процесс', 'нет'],
-            ['Оплата', 'один раз'],
+            ['Оплата', 'по неделям или месяцам'],
             ['Обновления', 'бесплатно'],
             ['Выдача', 'сразу после оплаты']
           ],
           about: [
             'SpriceOverlay-CS2 — тот же оверлей, но под Counter-Strike 2. Только то, что нужно в матче: боксы, скелет и дистанция до цели, плюс небольшая панель со счётчиком кадров и пингом.',
-            'В процесс игры он не лезет — рисует поверх окна, поэтому патчи CS2 его не ломают. Платишь один раз, обновления приходят бесплатно: подписок и продлений нет.'
+            'В процесс игры он не лезет — рисует поверх окна, поэтому патчи CS2 его не ломают. Тариф на неделю или на месяц, обновления приходят на всём сроке — доплачивать за них не нужно.'
           ],
           shots: [],
           plans: [
-            { duration: 'Навсегда', price: '799 ₽' }
+            { duration: '1 Месяц', price: '599 ₽' },
+            { duration: '7 Дней', price: '249 ₽' }
           ]
         }
       };
@@ -2814,7 +2826,7 @@
         spriceoverlay: {
           name: 'SpriceOverlay-Roblox',
           tag: 'External',
-          lead: 'A lightweight overlay for Roblox: only what you actually need — boxes, distance and an FPS counter. One-time payment, no subscription.',
+          lead: 'A lightweight overlay for Roblox: only what you actually need — boxes, distance and an FPS counter. Monthly or forever — your choice.',
           price: '699 ₽', per: 'forever',
           features: [
             'ESP: boxes and distance to the target',
@@ -2822,54 +2834,56 @@
             'Its own overlay window, toggled by a hotkey',
             'Draws over the window — never touches the game process',
             'Minimal load, no frame drops',
-            'One-time payment, free updates'
+            'Updates for the whole term — no extra charge'
           ],
           specs: [
             ['Platform', 'Windows 10 / 11 x64'],
             ['Type', 'External, overlay'],
             ['Game', 'Roblox'],
-            ['Payment', 'one time'],
+            ['Payment', 'one time or monthly'],
             ['Updates', 'free'],
             ['Delivery', 'right after payment']
           ],
           about: [
             'SpriceOverlay-Roblox is for anyone who does not need a Swiss army knife. Just the overlay: boxes, distance and a small FPS panel. Launch it, bind a hotkey, play.',
-            'The load is minimal — it does not touch the game, it just draws over the window. You pay once and updates stay free: no subscriptions, no renewals.'
+            'The load is minimal — it does not touch the game, it just draws over the window. Take it for a month or forever; updates come for the whole term at no extra cost.'
           ],
           shots: SHOTS.spriceoverlay,
           plans: [
-            { duration: 'Forever', price: '699 ₽' }
+            { duration: 'Forever', price: '699 ₽' },
+            { duration: '1 Month', price: '399 ₽' }
           ]
         },
         spriceoverlaycs2: {
           name: 'SpriceOverlay-CS2',
           tag: 'External',
           lead: 'An overlay for Counter-Strike 2: boxes, skeletons, distance and an FPS panel. It draws over the window and never touches the game process.',
-          price: '799 ₽', per: 'forever',
+          price: '599 ₽', per: 'per month',
           features: [
             'ESP: boxes, nicknames, distance and a health bar',
             'Skeletons and hit points — you see exactly how the target stands',
             'Info panel: FPS, ping, connection status',
             'Its own overlay window, toggled by a hotkey',
             'Draws over the window — never touches the game process',
-            'One-time payment, free updates'
+            'Updates for the whole term — no extra charge'
           ],
           specs: [
             ['Platform', 'Windows 10 / 11 x64'],
             ['Type', 'External, overlay'],
             ['Game', 'Counter-Strike 2'],
             ['Injection into the process', 'no'],
-            ['Payment', 'one time'],
+            ['Payment', 'weekly or monthly'],
             ['Updates', 'free'],
             ['Delivery', 'right after payment']
           ],
           about: [
             'SpriceOverlay-CS2 is the same overlay, built for Counter-Strike 2. Only what you need in a match: boxes, skeletons and distance to the target, plus a small panel with FPS and ping.',
-            'It never touches the game process — it draws over the window, so CS2 patches do not break it. You pay once and updates stay free: no subscriptions, no renewals.'
+            'It never touches the game process — it draws over the window, so CS2 patches do not break it. Pick a week or a month; updates come for the whole term at no extra cost.'
           ],
           shots: [],
           plans: [
-            { duration: 'Forever', price: '799 ₽' }
+            { duration: '1 Month', price: '599 ₽' },
+            { duration: '7 Days', price: '249 ₽' }
           ]
         }
       };
@@ -2936,12 +2950,12 @@
           'card.spicemacro.f2': 'F1',
           'card.spriceoverlay.aria': 'SpriceOverlay-Roblox — подробнее о продукте',
           'card.spriceoverlay.tag': 'External',
-          'card.spriceoverlay.desc': 'Лёгкий оверлей под Roblox: боксы, дистанция, счётчик кадров. Оплата один раз, обновления бесплатные.',
+          'card.spriceoverlay.desc': 'Лёгкий оверлей под Roblox: боксы, дистанция, счётчик кадров. Обновления бесплатные.',
           'card.spriceoverlay.f1': 'Оверлей',
           'card.spriceoverlay.f2': 'Roblox',
           'card.spriceoverlaycs2.aria': 'SpriceOverlay-CS2 — подробнее о продукте',
           'card.spriceoverlaycs2.tag': 'External',
-          'card.spriceoverlaycs2.desc': 'Оверлей под CS2: боксы, скелет, дистанция и панель с FPS. Оплата один раз, обновления бесплатные.',
+          'card.spriceoverlaycs2.desc': 'Оверлей под CS2: боксы, скелет, дистанция и панель с FPS. Обновления бесплатные.',
           'card.spriceoverlaycs2.f1': 'Оверлей',
           'card.spriceoverlaycs2.f2': 'CS2',
           'card.more': 'Подробнее о продукте',
@@ -3175,12 +3189,12 @@
           'card.spicemacro.f2': 'F1',
           'card.spriceoverlay.aria': 'SpriceOverlay-Roblox — product details',
           'card.spriceoverlay.tag': 'External',
-          'card.spriceoverlay.desc': 'Lightweight overlay for Roblox: boxes, distance, FPS counter. One-time payment, free updates.',
+          'card.spriceoverlay.desc': 'Lightweight overlay for Roblox: boxes, distance, FPS counter. Free updates.',
           'card.spriceoverlay.f1': 'Overlay',
           'card.spriceoverlay.f2': 'Roblox',
           'card.spriceoverlaycs2.aria': 'SpriceOverlay-CS2 — product details',
           'card.spriceoverlaycs2.tag': 'External',
-          'card.spriceoverlaycs2.desc': 'Overlay for CS2: boxes, skeletons, distance and an FPS panel. One-time payment, free updates.',
+          'card.spriceoverlaycs2.desc': 'Overlay for CS2: boxes, skeletons, distance and an FPS panel. Free updates.',
           'card.spriceoverlaycs2.f1': 'Overlay',
           'card.spriceoverlaycs2.f2': 'CS2',
           'card.more': 'Product details',
@@ -3615,7 +3629,7 @@
         small.textContent = p.per;
         detailPrice.appendChild(small);
         detailNote.textContent = p.plans.length > 1
-          ? t('detail.notePlans', { n: p.plans.length, price: p.plans[0].price })
+          ? t('detail.notePlans', { n: p.plans.length, price: minPlanPrice(p.plans) })
           : t('detail.noteSingle');
         detailBuy.dataset.product = id;
 
