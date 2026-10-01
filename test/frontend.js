@@ -220,6 +220,53 @@ async function run(send, expr) {
     check('сообщение об ошибке появляется на русском', /опечатк/i.test(g.errRu || ''), g.errRu);
     check('после смены языка старое сообщение не осталось', g.errEn === '', g.errEn);
 
+    console.log('\n─── 1c. Галерея снимков SpriceOverlay-CS2 ───');
+    const gal = await run(send, `(async () => { ${HELPERS}
+      location.hash = '#p=spriceoverlaycs2';
+      await waitFor(() => $('detail').classList.contains('open'), 8000);
+      await sleep(700);
+      const img = $('shotMainImg');
+      await waitFor(() => img.naturalWidth > 0, 6000);
+      const thumbs = [...document.querySelectorAll('#shotThumbs .thumb')];
+      const firstSrc = img.getAttribute('src');
+      const first = {
+        thumbs: thumbs.length,
+        active: thumbs.findIndex(t => t.classList.contains('active')),
+        cap: $('shotCap').textContent,
+        placeholderHidden: getComputedStyle($('shotPlaceholder')).display === 'none',
+        loaded: img.naturalWidth > 0,
+        size: img.naturalWidth + 'x' + img.naturalHeight
+      };
+      thumbs[3].click();
+      await sleep(600);
+      const second = {
+        active: thumbs.findIndex(t => t.classList.contains('active')),
+        cap: $('shotCap').textContent,
+        changed: img.getAttribute('src') !== firstSrc
+      };
+      const styles = {
+        thumbBg: getComputedStyle(thumbs[0]).backgroundColor,
+        thumbBorder: getComputedStyle(thumbs[0]).borderTopWidth,
+        activeBorder: getComputedStyle(thumbs[3].querySelector('img')).borderTopColor,
+        idleBorder: getComputedStyle(thumbs[0].querySelector('img')).borderTopColor
+      };
+      $('detailBack').click();
+      await waitFor(() => !$('detail').classList.contains('open'), 6000);
+      await sleep(500);
+      return JSON.stringify({ first, second, styles });
+    })()`);
+    check('галерея CS2 отрисовалась без ошибок JS', gal && !gal.__error, gal);
+    const g1 = gal && !gal.__error ? JSON.parse(gal) : {};
+    const gf1 = g1.first || {}, gf2 = g1.second || {}, gst = g1.styles || {};
+    check('шесть миниатюр под снимком', gf1.thumbs === 6, gf1.thumbs);
+    check('первая миниатюра активна', gf1.active === 0, gf1.active);
+    check('заглушка скрыта, снимок загрузился', gf1.placeholderHidden === true && gf1.loaded === true, gf1);
+    check('подпись первого снимка про AimBot', /AimBot/.test(gf1.cap || ''), gf1.cap);
+    check('клик по четвёртой миниатюре переключил снимок', gf2.active === 3 && gf2.changed === true, gf2);
+    check('подпись сменилась вместе со снимком', /Settings/.test(gf2.cap || ''), gf2.cap);
+    check('миниатюры без браузерной рамки кнопки', gst.thumbBg === 'rgba(0, 0, 0, 0)' && gst.thumbBorder === '0px', gst);
+    check('активная миниатюра выделена рамкой', gst.activeBorder !== gst.idleBorder, gst);
+
     console.log('\n─── 2. Регистрация через форму ───');
     const reg = await run(send, `(async () => { ${HELPERS}
       $('authOpen').click();
