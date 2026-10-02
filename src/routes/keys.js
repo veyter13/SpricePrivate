@@ -223,9 +223,13 @@ router.post(
     await logEvent('loader_login', user.id, user.email_lower, req.ip);
 
     const licenses = await licensesOf(user.id, locale);
+    const activeOne = licenses.filter((l) => l.status === 'active')[0] || null;
     res.json({
       ok: true,
       token,
+      activeKey: activeOne ? activeOne.key : null,
+      activeGame: activeOne ? activeOne.game : null,
+      activeUntil: activeOne ? (activeOne.expiresAt || null) : null,
       nickname: user.nickname,
       email: user.email,
       expiresAt: expires,

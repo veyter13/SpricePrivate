@@ -2127,12 +2127,40 @@
       </div>
       <div class="orders" id="orderList"></div>
 
+      <div class="profile__h" style="margin-top:20px">
+        <span data-i18n="profile.subs">Мои подписки</span>
+        <span id="profSubCount"></span>
+      </div>
+      <div class="orders" id="licenseList"></div>
+
+      <button class="btn btn--primary" id="profActivate" type="button" style="width:100%;margin-top:12px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        <span data-i18n="profile.activate">Подтвердить покупку</span>
+      </button>
+
       <div class="profile__actions">
         <button class="btn btn--ghost" id="profLogout" type="button">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
           <span data-i18n="profile.logout">Выйти из аккаунта</span>
         </button>
       </div>
+    </div>
+  </div>
+
+  <div class="modal" id="claimModal" role="dialog" aria-modal="true">
+    <div class="modal__card">
+      <button class="modal__close" id="claimClose" aria-label="Закрыть" data-i18n-aria="common.close">
+        <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+      <h3 class="modal__title"><span data-i18n="profile.claimTitle">Активация ключа</span> <span>Sprice</span></h3>
+      <p class="modal__sub" data-i18n="profile.claimHint">Введи ключ, полученный после оплаты</p>
+      <div class="field">
+        <input type="text" id="claimInput" autocomplete="off" spellcheck="false" placeholder="SPRC-XXXX-XXXX-XXXX-XXXX">
+      </div>
+      <div class="modal__err" id="claimErr" hidden><span></span></div>
+      <button class="btn btn--primary btn--wide" id="claimSubmit" type="button">
+        <span data-i18n="profile.claimBtn">Активировать</span>
+      </button>
     </div>
   </div>
 
@@ -3089,6 +3117,25 @@ spriceoverlaycs2: '<circle cx="12" cy="12" r="7.4"/><path d="M12 1.6v4.4M12 18v4
           'profile.myOrders': 'Мои заказы',
           'profile.logout': 'Выйти из аккаунта',
           'profile.empty': 'Заказов пока нет.<br>Открой любой продукт в каталоге и нажми «Купить» — заказ сохранится здесь.',
+          'profile.subs': 'Мои подписки',
+          'profile.subsEmpty': 'Подписок пока нет.<br>Купи продукт на FunPay и введи ключ кнопкой ниже.',
+          'profile.activate': 'Подтвердить покупку',
+          'profile.claimTitle': 'Активация ключа',
+          'profile.claimHint': 'Введи ключ, полученный после оплаты',
+          'profile.claimBtn': 'Активировать',
+          'profile.claimShort': 'Ключ слишком короткий',
+          'profile.claimOk': 'Ключ активирован!',
+          'profile.active': 'активна',
+          'profile.expired': 'истекла',
+          'profile.until': 'до {date}',
+          'profile.game.cs2': 'CS2',
+          'profile.game.roblox': 'Roblox',
+          'profile.errNotFound': 'Ключ не найден',
+          'profile.errBound': 'Этот ключ уже привязан к другому аккаунту',
+          'profile.errDisabled': 'Ключ заблокирован',
+          'profile.errExpired': 'Срок ключа истёк',
+          'profile.errPanel': 'Сервер лицензий недоступен, попробуй позже',
+          'profile.errVerified': 'Сначала подтверди почту',
           'profile.updated': 'обновлено {date}',
 
           'val.name.empty': 'Придумай ник — его будет видно в профиле.',
@@ -3332,6 +3379,25 @@ spriceoverlaycs2: '<circle cx="12" cy="12" r="7.4"/><path d="M12 1.6v4.4M12 18v4
           'profile.myOrders': 'My orders',
           'profile.logout': 'Sign out of the account',
           'profile.empty': 'No orders yet.<br>Open any product in the catalog and hit “Buy” — the order will show up here.',
+          'profile.subs': 'My subscriptions',
+          'profile.subsEmpty': 'No subscriptions yet.<br>Buy on FunPay and enter the key with the button below.',
+          'profile.activate': 'Confirm purchase',
+          'profile.claimTitle': 'Activate key',
+          'profile.claimHint': 'Enter the key you received after payment',
+          'profile.claimBtn': 'Activate',
+          'profile.claimShort': 'Key is too short',
+          'profile.claimOk': 'Key activated!',
+          'profile.active': 'active',
+          'profile.expired': 'expired',
+          'profile.until': 'until {date}',
+          'profile.game.cs2': 'CS2',
+          'profile.game.roblox': 'Roblox',
+          'profile.errNotFound': 'Key not found',
+          'profile.errBound': 'This key is already bound to another account',
+          'profile.errDisabled': 'Key is disabled',
+          'profile.errExpired': 'Key has expired',
+          'profile.errPanel': 'License server is unreachable, try later',
+          'profile.errVerified': 'Verify your email first',
           'profile.updated': 'updated {date}',
 
           'val.name.empty': 'Pick a nickname — it will show up in your profile.',
@@ -3793,6 +3859,14 @@ spriceoverlaycs2: '<circle cx="12" cy="12" r="7.4"/><path d="M12 1.6v4.4M12 18v4
       var profName = document.getElementById('profileName');
       var profMail = document.getElementById('profMail');
       var profOrders = document.getElementById('profOrders');
+      var licenseList = document.getElementById('licenseList');
+      var profSubCount = document.getElementById('profSubCount');
+      var profActivate = document.getElementById('profActivate');
+      var claimModal = document.getElementById('claimModal');
+      var claimInput = document.getElementById('claimInput');
+      var claimSubmit = document.getElementById('claimSubmit');
+      var claimErr = document.getElementById('claimErr');
+      var claimClose = document.getElementById('claimClose');
       var profDays = document.getElementById('profDays');
       var profSpent = document.getElementById('profSpent');
       var profLast = document.getElementById('profLast');
@@ -4204,6 +4278,92 @@ spriceoverlaycs2: '<circle cx="12" cy="12" r="7.4"/><path d="M12 1.6v4.4M12 18v4
         try { return new Date(ts).toLocaleDateString(curLoc(), { day: 'numeric', month: 'short', year: 'numeric' }); }
         catch (e) { return ''; }
       }
+
+      function licenseGameLabel(g) {
+        return g === 'cs2' ? t('profile.game.cs2') : t('profile.game.roblox');
+      }
+
+      function renderLicenses() {
+        if (!licenseList) return;
+        licenseList.innerHTML = '<div class="orders__empty">…</div>';
+        api('/api/keys/mine?lang=' + LANG).then(function (res) {
+          var list = res.licenses || [];
+          if (profSubCount) profSubCount.textContent = list.length ? String(list.length) : '';
+          licenseList.innerHTML = '';
+          if (!list.length) {
+            var e = document.createElement('div');
+            e.className = 'orders__empty';
+            e.innerHTML = t('profile.subsEmpty');
+            licenseList.appendChild(e);
+            return;
+          }
+          list.forEach(function (l, idx) {
+            var active = l.status === 'active';
+            var el = document.createElement('div');
+            el.className = 'order' + (active ? '' : ' order--off');
+            el.style.animationDelay = (idx * 55) + 'ms';
+            var until = l.expiresAt ? ' · ' + t('profile.until', { date: l.expiresAt }) : '';
+            el.innerHTML = '<span class="order__ico"><svg viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg></span>' +
+                           '<span class="order__b"><b></b><span></span></span>' +
+                           '<span class="order__p"></span>';
+            el.querySelector('.order__b b').textContent = licenseGameLabel(l.game) + ' · ' + (active ? t('profile.active') : t('profile.expired'));
+            el.querySelector('.order__b span').textContent = l.key + until;
+            el.querySelector('.order__p').textContent = l.game === 'cs2' ? 'CS2' : 'RBX';
+            licenseList.appendChild(el);
+          });
+        }).catch(function (err) {
+          licenseList.innerHTML = '<div class="orders__empty">' + apiMessage(err) + '</div>';
+        });
+      }
+
+      function openClaim() {
+        if (!currentUser) { openAuth(); return; }
+        if (claimErr) { claimErr.hidden = true; }
+        if (claimInput) claimInput.value = '';
+        if (claimModal) claimModal.classList.add('active');
+        setTimeout(function () { if (claimInput) claimInput.focus(); }, 60);
+      }
+
+      function closeClaim() {
+        if (claimModal) claimModal.classList.remove('active');
+      }
+
+      function submitClaim() {
+        var v = claimInput ? claimInput.value.trim().toUpperCase().replace(/\s+/g, '') : '';
+        if (v.length < 6) {
+          if (claimErr) { claimErr.hidden = false; claimErr.querySelector('span').textContent = t('profile.claimShort'); }
+          return;
+        }
+        claimSubmit.disabled = true;
+        api('/api/keys/claim', { method: 'POST', body: { key: v, locale: LANG } }).then(function (res) {
+          claimSubmit.disabled = false;
+          closeClaim();
+          toast(t('profile.claimOk'));
+          renderLicenses();
+        }).catch(function (err) {
+          claimSubmit.disabled = false;
+          var map = {
+            key_not_found: 'profile.errNotFound',
+            key_already_bound: 'profile.errBound',
+            key_bound_to_other: 'profile.errBound',
+            key_disabled: 'profile.errDisabled',
+            key_expired: 'profile.errExpired',
+            panel_unreachable: 'profile.errPanel',
+            panel_error: 'profile.errPanel',
+            not_verified: 'profile.errVerified'
+          };
+          var code = (err && err.code) || '';
+          var msg = map[code] ? t(map[code]) : apiMessage(err);
+          if (claimErr) { claimErr.hidden = false; claimErr.querySelector('span').textContent = msg; }
+        });
+      }
+
+      if (profActivate) profActivate.addEventListener('click', openClaim);
+      if (claimSubmit) claimSubmit.addEventListener('click', submitClaim);
+      if (claimClose) claimClose.addEventListener('click', closeClaim);
+      if (claimModal) claimModal.addEventListener('click', function (e) { if (e.target === claimModal) closeClaim(); });
+      if (claimInput) claimInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') submitClaim(); });
+
       function renderProfile() {
         if (!currentUser) return;
         profAva.textContent = firstLetter(currentUser.name);
@@ -4251,6 +4411,8 @@ spriceoverlaycs2: '<circle cx="12" cy="12" r="7.4"/><path d="M12 1.6v4.4M12 18v4
           showErr(null, null, '');
           orderList.innerHTML = '<div class="orders__empty">' + apiMessage(err) + '</div>';
         });
+
+        renderLicenses();
       }
 
       function loadOrderCount() {
