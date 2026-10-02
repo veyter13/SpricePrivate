@@ -228,6 +228,7 @@ router.post(
       ok: true,
       token,
       activeKey: activeOne ? activeOne.key : null,
+      activeGames: licenses.filter((l) => l.status === 'active').map((l) => ({ game: l.game, key: l.key, until: l.expiresAt || null })),
       activeGame: activeOne ? activeOne.game : null,
       activeUntil: activeOne ? (activeOne.expiresAt || null) : null,
       nickname: user.nickname,
