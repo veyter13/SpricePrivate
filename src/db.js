@@ -91,7 +91,32 @@ const SCHEMA = [
      ip           TEXT,
      created_at   TEXT NOT NULL
    )`,
-  `CREATE INDEX IF NOT EXISTS idx_events_kind ON events (kind, created_at)`
+  `CREATE INDEX IF NOT EXISTS idx_events_kind ON events (kind, created_at)`,
+
+  `CREATE TABLE IF NOT EXISTS licenses (
+     id            TEXT PRIMARY KEY,
+     user_id       TEXT NOT NULL,
+     key           TEXT NOT NULL UNIQUE,
+     product_id    TEXT,
+     game          TEXT NOT NULL DEFAULT 'roblox',
+     status        TEXT NOT NULL DEFAULT 'active',
+     funpay_code   TEXT,
+     expires_at    TEXT,
+     activated_at  TEXT,
+     created_at    TEXT NOT NULL
+   )`,
+  `CREATE INDEX IF NOT EXISTS idx_licenses_user ON licenses (user_id, created_at)`,
+  `CREATE INDEX IF NOT EXISTS idx_licenses_code ON licenses (funpay_code)`,
+
+  `CREATE TABLE IF NOT EXISTS loader_sessions (
+     id          TEXT PRIMARY KEY,
+     user_id     TEXT NOT NULL,
+     token_hash  TEXT NOT NULL UNIQUE,
+     hwid        TEXT,
+     created_at  TEXT NOT NULL,
+     expires_at  TEXT NOT NULL
+   )`,
+  `CREATE INDEX IF NOT EXISTS idx_loader_sessions_user ON loader_sessions (user_id)`
 ];
 
 async function init() {

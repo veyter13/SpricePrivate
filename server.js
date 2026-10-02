@@ -18,6 +18,7 @@ const db = require('./src/db');
 const mail = require('./src/mail');
 const authRoutes = require('./src/routes/auth');
 const orderRoutes = require('./src/routes/orders');
+const keyRoutes = require('./src/routes/keys');
 const catalog = require('./src/catalog');
 
 const PORT = Number(process.env.PORT || 3000);
@@ -84,6 +85,7 @@ app.get('/healthz', async (req, res) => {
 
 app.use('/api/auth', authRoutes.router);
 app.use('/api', orderRoutes.router);
+app.use('/api', keyRoutes.router);
 
 app.use('/api', (req, res) => res.status(404).json({ error: 'not_found' }));
 
