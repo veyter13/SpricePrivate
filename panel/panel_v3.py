@@ -415,6 +415,11 @@ def init_db():
                 conn.execute("ALTER TABLE keys ADD COLUMN owner INTEGER DEFAULT 0")
             except Exception:
                 pass
+        if "owner_login" not in cols:
+            try:
+                conn.execute("ALTER TABLE keys ADD COLUMN owner_login TEXT DEFAULT ''")
+            except Exception:
+                pass
     finally:
         conn.close()
 
@@ -2391,18 +2396,22 @@ def api_bind_key():
             if u:
                 uid = u["id"]
 
+        # Ключ мог быть привязан к логину сайта (owner_login) или к аккаунту панели (owner)
+        cur_login = (r["owner_login"] or "").strip() if "owner_login" in r.keys() else ""
         cur_owner = int(r["owner"] or 0)
+        if cur_login and owner_login and cur_login.lower() != owner_login.lower():
+            return _api_json({"ok": False, "error": "key_already_bound"}, 409)
         if cur_owner and uid and cur_owner != uid:
             return _api_json({"ok": False, "error": "key_already_bound"}, 409)
-        if cur_owner and not uid:
-            return _api_json({"ok": False, "error": "key_already_bound"}, 409)
 
+        if owner_login and cur_login.lower() != owner_login.lower():
+            conn.execute("UPDATE keys SET owner_login=? WHERE key=?", (owner_login, key))
         if uid and cur_owner != uid:
             conn.execute("UPDATE keys SET owner=? WHERE key=?", (uid, key))
 
         return _api_json({"ok": True, "key": r["key"], "game": r["game"],
                           "expires_at": r["expires_at"],
-                          "bound": bool(uid)})
+                          "bound": bool(owner_login or uid)})
     finally:
         conn.close()
 
