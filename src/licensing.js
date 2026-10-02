@@ -89,6 +89,27 @@ async function issueKeyOnPanel({ owner, game, days, note }) {
   }
 }
 
+async function bindKeyOnPanel(key, owner) {
+  if (!PANEL_URL || !PANEL_SECRET) return { ok: false, error: 'panel_not_configured' };
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 20000);
+  try {
+    const r = await fetch(PANEL_URL + '/api/bind_key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Api-Secret': PANEL_SECRET },
+      body: JSON.stringify({ key, owner }),
+      signal: ctl.signal
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!data || data.ok !== true) return { ok: false, error: (data && data.error) || 'panel_error' };
+    return { ok: true, key: data.key, game: data.game, expiresAt: data.expires_at };
+  } catch (e) {
+    return { ok: false, error: 'panel_unreachable' };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function keyInfoOnPanel(key) {
   if (!PANEL_URL || !PANEL_SECRET) return null;
   try {
@@ -134,6 +155,7 @@ module.exports = {
   funpayLookup,
   issueKeyOnPanel,
   keyInfoOnPanel,
+  bindKeyOnPanel,
   licenseView,
   makeLoaderToken
 };

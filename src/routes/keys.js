@@ -124,6 +124,42 @@ router.post(
   })
 );
 
+router.post(
+  '/keys/claim',
+  requireUser,
+  asyncRoute(async (req, res) => {
+    const key = String((req.body && req.body.key) || '').trim().toUpperCase().replace(/s+/g, '');
+    const locale = (req.body && req.body.locale) === 'en' ? 'en' : 'ru';
+    if (key.length < 6) throw new ApiError(400, 'key_short');
+    if (Number(req.user.email_verified) !== 1) throw new ApiError(403, 'not_verified');
+
+    const mine = await db.get('SELECT * FROM licenses WHERE key = $1', [key]);
+    if (mine) {
+      if (mine.user_id === req.user.id) {
+        return res.json({ ok: true, already: true, license: licensing.licenseView(mine, locale) });
+      }
+      throw new ApiError(409, 'key_bound_to_other');
+    }
+
+    const bound = await licensing.bindKeyOnPanel(key, req.user.nickname);
+    if (!bound.ok) {
+      const map = { key_not_found: 404, key_already_bound: 409, key_disabled: 403, key_expired: 403 };
+      throw new ApiError(map[bound.error] || 502, bound.error || 'panel_error');
+    }
+
+    const id = db.uid();
+    const now = db.nowIso();
+    await db.run(
+      'INSERT INTO licenses (id, user_id, key, product_id, game, status, expires_at, activated_at, created_at)' +
+      ' VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)',
+      [id, req.user.id, bound.key, 'manual', bound.game || 'roblox', 'active', bound.expiresAt || null, now, now]
+    );
+    await logEvent('license_claimed', req.user.id, req.user.email_lower, req.ip);
+    const row = await db.get('SELECT * FROM licenses WHERE id = $1', [id]);
+    res.status(201).json({ ok: true, license: licensing.licenseView(row, locale) });
+  })
+);
+
 router.get(
   '/licenses/:id/receipt',
   requireUser,

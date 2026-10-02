@@ -2361,6 +2361,52 @@ def api_key_info():
         conn.close()
 
 
+
+@app.route("/api/bind_key", methods=["POST"])
+def api_bind_key():
+    """Привязка ключа (купленного на FunPay) к аккаунту сайта.
+    Тело: {key, owner}. Если ключ свободен — привязываем; если уже привязан
+    к этому же владельцу — ок; к другому — отказ."""
+    if not _api_secret_ok():
+        return _api_json({"ok": False, "error": "forbidden"}, 403)
+    d = request.get_json(silent=True) or request.form
+    key = norm_key(d.get("key") or "")
+    owner_login = (d.get("owner") or "").strip()
+    if not key:
+        return _api_json({"ok": False, "error": "key_required"}, 400)
+    conn = connect()
+    try:
+        r = conn.execute("SELECT * FROM keys WHERE key=?", (key,)).fetchone()
+        if not r:
+            return _api_json({"ok": False, "error": "key_not_found"}, 404)
+        if int(r["active"] or 0) != 1:
+            return _api_json({"ok": False, "error": "key_disabled"}, 403)
+        exp = int(r["expires_epoch"] or 0)
+        if exp and exp < int(time.time()):
+            return _api_json({"ok": False, "error": "key_expired"}, 403)
+
+        uid = 0
+        if owner_login:
+            u = conn.execute("SELECT id FROM users WHERE login=?", (owner_login,)).fetchone()
+            if u:
+                uid = u["id"]
+
+        cur_owner = int(r["owner"] or 0)
+        if cur_owner and uid and cur_owner != uid:
+            return _api_json({"ok": False, "error": "key_already_bound"}, 409)
+        if cur_owner and not uid:
+            return _api_json({"ok": False, "error": "key_already_bound"}, 409)
+
+        if uid and cur_owner != uid:
+            conn.execute("UPDATE keys SET owner=? WHERE key=?", (uid, key))
+
+        return _api_json({"ok": True, "key": r["key"], "game": r["game"],
+                          "expires_at": r["expires_at"],
+                          "bound": bool(uid)})
+    finally:
+        conn.close()
+
+
 if __name__ == "__main__":
     print(f"[SPRICE] panel on http://{HOST}:{PORT}  db={DB_PATH}")
     app.run(host=HOST, port=PORT, debug=False)
