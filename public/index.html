@@ -1339,6 +1339,47 @@
     .order__b span { display: block; font-size: 0.72rem; color: var(--text-3); }
     .order__p { font-family: var(--font-mono); font-weight: 700; font-size: 0.86rem; color: var(--accent); white-space: nowrap; }
     .orders__empty { padding: 26px 18px; text-align: center; border-radius: var(--r-md); border: 1px dashed var(--border); color: var(--text-3); font-size: 0.82rem; line-height: 1.65; }
+
+    /* ---- подробная карточка подписки (как в лоадере) ---- */
+    /* Своей прокрутки нет: карточка профиля и так скроллится, вложенные
+       скроллбары мешают листать и прячут часть подписок. */
+    #profileCard { max-width: 560px; }
+    .lics { display: grid; gap: 10px; }
+    .lic {
+      padding: 14px; border-radius: var(--r-md);
+      background: var(--elevated); border: 1px solid var(--border-soft);
+      animation: plan-in 0.4s var(--ease-out) both;
+    }
+    .lic--off { opacity: 0.62; }
+    .lic__top { display: flex; align-items: center; gap: 12px; margin-bottom: 11px; }
+    .lic__ico { width: 38px; height: 38px; border-radius: 12px; flex-shrink: 0; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); }
+    .lic__ico svg { width: 19px; height: 19px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .lic__ttl { min-width: 0; flex: 1; }
+    .lic__ttl b { display: block; font-size: 0.92rem; margin-bottom: 2px; }
+    .lic__ttl span { display: block; font-size: 0.73rem; color: var(--text-3); }
+    .lic__badge {
+      font-family: var(--font-mono); font-size: 0.62rem; font-weight: 700;
+      letter-spacing: 0.08em; padding: 4px 9px; border-radius: 999px; white-space: nowrap;
+    }
+    .lic__badge--on   { color: var(--pro);  background: var(--pro-bg);  border: 1px solid rgba(52, 211, 153, 0.35); }
+    .lic__badge--off  { color: var(--con);  background: var(--con-bg);  border: 1px solid rgba(251, 113, 133, 0.35); }
+    .lic__badge--warn { color: var(--star); background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.35); }
+
+    .lic__meter { height: 5px; border-radius: 999px; background: var(--border-soft); overflow: hidden; margin-bottom: 12px; }
+    .lic__meter i { display: block; height: 100%; border-radius: 999px; background: var(--grad); transition: width 0.6s var(--ease-out); }
+
+    .lic__rows { display: grid; gap: 7px; }
+    .lic__row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+    .lic__row > span { font-size: 0.63rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-3); white-space: nowrap; }
+    .lic__row > b { font-family: var(--font-mono); font-size: 0.74rem; font-weight: 600; color: var(--text-2); text-align: right; word-break: break-all; }
+    .lic__row > b.strong { color: var(--text); }
+    .lic__copy {
+      background: none; border: 1px solid var(--border-soft); color: var(--text-3);
+      border-radius: 7px; padding: 2px 7px; font-size: 0.6rem; cursor: pointer;
+      margin-left: 7px; font-family: var(--font-sans); vertical-align: middle;
+    }
+    .lic__copy:hover { color: var(--text); border-color: var(--border-hover); }
+
     .profile__actions { display: grid; gap: 9px; margin-top: 20px; }
     .profile__actions .btn { width: 100%; }
 
@@ -2112,6 +2153,7 @@
         <div>
           <div class="profile__name" id="profileName">—</div>
           <div class="profile__mail" id="profMail">—</div>
+          <div class="profile__mail" id="profMeta" style="margin-top:3px"></div>
         </div>
       </div>
 
@@ -2119,6 +2161,9 @@
         <div class="profile__stat"><b id="profOrders">0</b><span data-i18n="profile.orders">заказов</span></div>
         <div class="profile__stat"><b id="profDays">1</b><span data-i18n="profile.days">дней с нами</span></div>
         <div class="profile__stat"><b id="profSpent">0 ₽</b><span data-i18n="profile.spent">на сумму</span></div>
+        <div class="profile__stat"><b id="profLicTotal">0</b><span data-i18n="profile.licTotal">подписок</span></div>
+        <div class="profile__stat"><b id="profLicActive">0</b><span data-i18n="profile.licActive">активных</span></div>
+        <div class="profile__stat"><b id="profDaysLeft">—</b><span data-i18n="profile.daysLeft">дней осталось</span></div>
       </div>
 
       <div class="profile__h">
@@ -2131,7 +2176,7 @@
         <span data-i18n="profile.subs">Мои подписки</span>
         <span id="profSubCount"></span>
       </div>
-      <div class="orders" id="licenseList"></div>
+      <div class="lics" id="licenseList"></div>
 
       <button class="btn btn--primary" id="profActivate" type="button" style="width:100%;margin-top:12px">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
@@ -3138,6 +3183,32 @@ spriceoverlaycs2: '<circle cx="12" cy="12" r="7.4"/><path d="M12 1.6v4.4M12 18v4
           'profile.errVerified': 'Сначала подтверди почту',
           'profile.updated': 'обновлено {date}',
 
+          // --- подробная карточка подписки ---
+          'profile.licTotal': 'подписок',
+          'profile.licActive': 'активных',
+          'profile.daysLeft': 'дней осталось',
+          'profile.badgeOn': 'АКТИВНА',
+          'profile.badgeOff': 'ОТКЛЮЧЕНА',
+          'profile.badgeExpired': 'ИСТЁКЛА',
+          'profile.badgeCheck': 'ПРОВЕРИТЬ',
+          'profile.lifetime': 'Бессрочно',
+          'profile.kKey': 'Ключ',
+          'profile.kReceipt': 'Чек',
+          'profile.kFunpay': 'FunPay',
+          'profile.kActivated': 'Активирован',
+          'profile.kCreated': 'Оформлен',
+          'profile.kExpires': 'Действует до',
+          'profile.kLeft': 'Осталось',
+          'profile.copy': 'копировать',
+          'profile.copied': 'Ключ скопирован',
+          'profile.lastLogin': 'Последний вход: {date}',
+          'profile.registered': 'Регистрация: {date}',
+          'profile.leftFmt': 'осталось {n}',
+          'profile.agoFmt': 'истёк {n} назад',
+          'profile.today': 'истекает сегодня',
+          'profile.noDate': 'без срока',
+          'profile.summary': 'Подписок: {total} · активных: {active}',
+
           'val.name.empty': 'Придумай ник — его будет видно в профиле.',
           'val.name.short': 'Ник короче 3 символов.',
           'val.name.long': 'Ник длиннее 20 символов — не влезет в шапку.',
@@ -3399,6 +3470,32 @@ spriceoverlaycs2: '<circle cx="12" cy="12" r="7.4"/><path d="M12 1.6v4.4M12 18v4
           'profile.errPanel': 'License server is unreachable, try later',
           'profile.errVerified': 'Verify your email first',
           'profile.updated': 'updated {date}',
+
+          // --- detailed subscription card ---
+          'profile.licTotal': 'licenses',
+          'profile.licActive': 'active',
+          'profile.daysLeft': 'days left',
+          'profile.badgeOn': 'ACTIVE',
+          'profile.badgeOff': 'DISABLED',
+          'profile.badgeExpired': 'EXPIRED',
+          'profile.badgeCheck': 'CHECK',
+          'profile.lifetime': 'Lifetime',
+          'profile.kKey': 'Key',
+          'profile.kReceipt': 'Receipt',
+          'profile.kFunpay': 'FunPay',
+          'profile.kActivated': 'Activated',
+          'profile.kCreated': 'Purchased',
+          'profile.kExpires': 'Valid until',
+          'profile.kLeft': 'Left',
+          'profile.copy': 'copy',
+          'profile.copied': 'Key copied',
+          'profile.lastLogin': 'Last login: {date}',
+          'profile.registered': 'Registered: {date}',
+          'profile.leftFmt': '{n} left',
+          'profile.agoFmt': 'expired {n} ago',
+          'profile.today': 'expires today',
+          'profile.noDate': 'no expiry',
+          'profile.summary': 'Licenses: {total} · active: {active}',
 
           'val.name.empty': 'Pick a nickname — it will show up in your profile.',
           'val.name.short': 'The nickname is shorter than 3 characters.',
@@ -3870,6 +3967,10 @@ spriceoverlaycs2: '<circle cx="12" cy="12" r="7.4"/><path d="M12 1.6v4.4M12 18v4
       var profDays = document.getElementById('profDays');
       var profSpent = document.getElementById('profSpent');
       var profLast = document.getElementById('profLast');
+      var profMeta = document.getElementById('profMeta');
+      var profLicTotal = document.getElementById('profLicTotal');
+      var profLicActive = document.getElementById('profLicActive');
+      var profDaysLeft = document.getElementById('profDaysLeft');
       var forgotBtn = document.getElementById('forgotBtn');
 
       var codeForm = document.getElementById('codeForm');
@@ -4279,38 +4380,162 @@ spriceoverlaycs2: '<circle cx="12" cy="12" r="7.4"/><path d="M12 1.6v4.4M12 18v4
         catch (e) { return ''; }
       }
 
+      // Склонение дней: 1 день / 2 дня / 5 дней (en: day/days).
+      function daysWord(n) {
+        if (LANG === 'en') return Math.abs(n) === 1 ? 'day' : 'days';
+        var a = Math.abs(n) % 100, b = a % 10;
+        if (a > 10 && a < 20) return 'дней';
+        if (b === 1) return 'день';
+        if (b >= 2 && b <= 4) return 'дня';
+        return 'дней';
+      }
+
+      // Человекочитаемый остаток срока — то же, что пишет лоадер.
+      function daysLeftText(daysLeft, lifetime) {
+        if (lifetime) return t('profile.lifetime');
+        if (typeof daysLeft !== 'number' || daysLeft < -0.5) return t('profile.noDate');
+        if (daysLeft === 0) return t('profile.today');
+        if (daysLeft < 0) {
+          return t('profile.agoFmt', { n: Math.abs(daysLeft) + ' ' + daysWord(daysLeft) });
+        }
+        return t('profile.leftFmt', { n: daysLeft + ' ' + daysWord(daysLeft) });
+      }
+
       function licenseGameLabel(g) {
         return g === 'cs2' ? t('profile.game.cs2') : t('profile.game.roblox');
       }
 
-      function renderLicenses() {
+      function copyText(v) {
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(v);
+          } else {
+            var ta = document.createElement('textarea');
+            ta.value = v;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+          }
+          toast(t('profile.copied'));
+        } catch (e) {}
+      }
+
+      // Одна строка «подпись — значение» в карточке подписки.
+      function licRow(label, value, opts) {
+        if (!value) return null;
+        opts = opts || {};
+        var row = document.createElement('div');
+        row.className = 'lic__row';
+        var s = document.createElement('span');
+        s.textContent = label;
+        var b = document.createElement('b');
+        if (opts.strong) b.className = 'strong';
+        b.textContent = value;
+        if (opts.copy) {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'lic__copy';
+          btn.textContent = t('profile.copy');
+          btn.addEventListener('click', function () { copyText(value); });
+          b.appendChild(btn);
+        }
+        row.appendChild(s);
+        row.appendChild(b);
+        return row;
+      }
+
+      // Подробные карточки подписок: срок, остаток дней, чек, FunPay-код и т.д.
+      function paintLicenses(list) {
         if (!licenseList) return;
+        licenseList.innerHTML = '';
+        if (profSubCount) profSubCount.textContent = list.length ? String(list.length) : '';
+        if (!list.length) {
+          var e = document.createElement('div');
+          e.className = 'orders__empty';
+          e.innerHTML = t('profile.subsEmpty');
+          licenseList.appendChild(e);
+          return;
+        }
+
+        list.forEach(function (l, idx) {
+          var active = l.status === 'active';
+          var expired = l.status === 'expired';
+
+          var card = document.createElement('div');
+          card.className = 'lic' + (active ? '' : ' lic--off');
+          card.style.animationDelay = (idx * 55) + 'ms';
+
+          // --- шапка: иконка, название, бейдж состояния ---
+          var top = document.createElement('div');
+          top.className = 'lic__top';
+
+          var ico = document.createElement('span');
+          ico.className = 'lic__ico';
+          ico.innerHTML = '<svg viewBox="0 0 24 24">' +
+            (ICONS[l.game === 'cs2' ? 'spriceoverlaycs2' : 'spriceoverlay'] || '') + '</svg>';
+          top.appendChild(ico);
+
+          var ttl = document.createElement('span');
+          ttl.className = 'lic__ttl';
+          var tb = document.createElement('b');
+          tb.textContent = l.productName || licenseGameLabel(l.game);
+          var ts = document.createElement('span');
+          var left = daysLeftText(l.daysLeft, l.lifetime);
+          ts.textContent = licenseGameLabel(l.game) + (active ? ' · ' + left : '');
+          ttl.appendChild(tb);
+          ttl.appendChild(ts);
+          top.appendChild(ttl);
+
+          var badge = document.createElement('span');
+          var bcls = 'lic__badge--warn', btxt = t('profile.badgeCheck');
+          if (active) { bcls = 'lic__badge--on'; btxt = t('profile.badgeOn'); }
+          else if (expired) { bcls = 'lic__badge--off'; btxt = t('profile.badgeExpired'); }
+          else if (l.status === 'disabled') { bcls = 'lic__badge--off'; btxt = t('profile.badgeOff'); }
+          badge.className = 'lic__badge ' + bcls;
+          badge.textContent = btxt;
+          top.appendChild(badge);
+          card.appendChild(top);
+
+          // --- полоса остатка срока (30 дней = полная шкала) ---
+          if (active && !l.lifetime && typeof l.daysLeft === 'number' && l.daysLeft >= 0) {
+            var pct = Math.max(3, Math.min(100, Math.round(l.daysLeft / 30 * 100)));
+            var meter = document.createElement('div');
+            meter.className = 'lic__meter';
+            var fill = document.createElement('i');
+            fill.style.width = pct + '%';
+            meter.appendChild(fill);
+            card.appendChild(meter);
+          }
+
+          // --- детали ---
+          var rows = document.createElement('div');
+          rows.className = 'lic__rows';
+          [
+            licRow(t('profile.kKey'), l.key, { strong: true, copy: true }),
+            licRow(t('profile.kExpires'), l.expiresAt ? fmtDate(l.expiresAt) : ''),
+            licRow(t('profile.kLeft'), active ? left : ''),
+            licRow(t('profile.kActivated'), l.activatedAt ? fmtDate(l.activatedAt) : ''),
+            licRow(t('profile.kCreated'), l.createdAt ? fmtDate(l.createdAt) : ''),
+            licRow(t('profile.kReceipt'), l.receipt),
+            licRow(t('profile.kFunpay'), l.funpayCode)
+          ].forEach(function (r) { if (r) rows.appendChild(r); });
+          card.appendChild(rows);
+
+          licenseList.appendChild(card);
+        });
+      }
+
+      // Список подписок. Если данные уже есть (пришли вместе с профилем) —
+      // рисуем сразу; иначе дотягиваем отдельным запросом.
+      function renderLicenses(list) {
+        if (!licenseList) return;
+        if (list) { paintLicenses(list); return; }
         licenseList.innerHTML = '<div class="orders__empty">…</div>';
         api('/api/keys/mine?lang=' + LANG).then(function (res) {
-          var list = res.licenses || [];
-          if (profSubCount) profSubCount.textContent = list.length ? String(list.length) : '';
-          licenseList.innerHTML = '';
-          if (!list.length) {
-            var e = document.createElement('div');
-            e.className = 'orders__empty';
-            e.innerHTML = t('profile.subsEmpty');
-            licenseList.appendChild(e);
-            return;
-          }
-          list.forEach(function (l, idx) {
-            var active = l.status === 'active';
-            var el = document.createElement('div');
-            el.className = 'order' + (active ? '' : ' order--off');
-            el.style.animationDelay = (idx * 55) + 'ms';
-            var until = l.expiresAt ? ' · ' + t('profile.until', { date: l.expiresAt }) : '';
-            el.innerHTML = '<span class="order__ico"><svg viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg></span>' +
-                           '<span class="order__b"><b></b><span></span></span>' +
-                           '<span class="order__p"></span>';
-            el.querySelector('.order__b b').textContent = licenseGameLabel(l.game) + ' · ' + (active ? t('profile.active') : t('profile.expired'));
-            el.querySelector('.order__b span').textContent = l.key + until;
-            el.querySelector('.order__p').textContent = l.game === 'cs2' ? 'CS2' : 'RBX';
-            licenseList.appendChild(el);
-          });
+          paintLicenses(res.licenses || []);
         }).catch(function (err) {
           licenseList.innerHTML = '<div class="orders__empty">' + apiMessage(err) + '</div>';
         });
@@ -4369,9 +4594,13 @@ spriceoverlaycs2: '<circle cx="12" cy="12" r="7.4"/><path d="M12 1.6v4.4M12 18v4
         profAva.textContent = firstLetter(currentUser.name);
         profName.textContent = currentUser.name;
         profMail.textContent = currentUser.email;
+        if (profMeta) profMeta.textContent = '';
         profOrders.textContent = String(userOrders);
         profDays.textContent = '1';
         profSpent.textContent = '0 ₽';
+        if (profLicTotal) profLicTotal.textContent = '0';
+        if (profLicActive) profLicActive.textContent = '0';
+        if (profDaysLeft) profDaysLeft.textContent = '—';
         profLast.textContent = '';
         orderList.innerHTML = '<div class="orders__empty">' + t('profile.empty') + '</div>';
 
@@ -4384,6 +4613,22 @@ spriceoverlaycs2: '<circle cx="12" cy="12" r="7.4"/><path d="M12 1.6v4.4M12 18v4
           profDays.textContent = String(st.days || 1);
           profSpent.textContent = st.spentText || '0 ₽';
           profLast.textContent = orders.length ? t('profile.updated', { date: fmtDate(orders[0].createdAt) }) : '';
+
+          // --- сводка по подпискам ---
+          if (profLicTotal) profLicTotal.textContent = String(st.licenses || 0);
+          if (profLicActive) profLicActive.textContent = String(st.active || 0);
+          if (profDaysLeft) {
+            profDaysLeft.textContent = st.anyLifetime
+              ? '∞'
+              : (st.daysLeftMax ? String(st.daysLeftMax) : '—');
+          }
+          if (profMeta) {
+            var meta = [];
+            var u = res.user || {};
+            if (u.createdAt) meta.push(t('profile.registered', { date: fmtDate(u.createdAt) }));
+            if (u.lastLoginAt) meta.push(t('profile.lastLogin', { date: fmtDate(u.lastLoginAt) }));
+            profMeta.textContent = meta.join('  ·  ');
+          }
           renderAuth();
 
           orderList.innerHTML = '';

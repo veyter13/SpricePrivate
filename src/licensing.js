@@ -124,22 +124,67 @@ async function keyInfoOnPanel(key) {
   }
 }
 
-function licenseView(row, locale) {
+// "YYYY-MM-DD HH:MM:SS" (UTC) -> ms. Панель отдаёт время без зоны.
+function parseUtcMs(s) {
+  if (!s) return 0;
+  const t = Date.parse(String(s).replace(' ', 'T') + 'Z');
+  return Number.isNaN(t) ? 0 : t;
+}
+
+// Живые данные панели по ключу: выключен ли тумблер и какой срок СЕЙЧАС.
+// Панель может быть недоступна — тогда возвращаем null и живём на данных БД.
+async function liveLicenseInfo(key) {
+  if (!key) return null;
+  const info = await keyInfoOnPanel(key);
+  if (!info || info.ok !== true) return null;
+  return {
+    active: Number(info.active || 0) === 1,
+    expiresAt: info.expires_at || '',
+    hwid: info.hwid || ''
+  };
+}
+
+function licenseView(row, locale, live) {
   const loc = locale === 'en' ? 'en' : 'ru';
-  const expired =
-    row.expires_at && String(row.expires_at).length > 0
-      ? new Date(String(row.expires_at).replace(' ', 'T') + 'Z').getTime() < Date.now()
-      : false;
+
+  // Живые данные панели приоритетнее снимка в БД: именно они знают, выключен ли
+  // ключ тумблером в панели и какой срок стоит сейчас (после продления).
+  let expiresAt = row.expires_at && String(row.expires_at).length > 0
+    ? String(row.expires_at)
+    : '';
+  let status = row.status || 'active';
+  if (live) {
+    if (live.expiresAt) expiresAt = String(live.expiresAt);
+    if (live.active === false) status = 'disabled';
+  }
+
+  const ms = parseUtcMs(expiresAt);
+  const now = Date.now();
+  const expired = ms > 0 && ms < now;
+  if (status === 'active' && expired) status = 'expired';
+
+  // Ключ без даты = бессрочный (панель отдаёт "lifetime").
+  const lifetime = !expiresAt;
+  // Округляем вверх: 3 часа до конца — это ещё «1 день», иначе живой ключ
+  // показывал бы «осталось 0 дней» и выглядел бы сломанным.
+  const daysLeft = lifetime
+    ? -1
+    : (expired ? -Math.floor((now - ms) / 86400000)
+               : Math.ceil((ms - now) / 86400000));
+
   return {
     id: row.id,
     key: row.key,
     productId: row.product_id,
     game: row.game,
-    status: expired ? 'expired' : row.status,
+    status,
     funpayCode: row.funpay_code,
     activatedAt: row.activated_at,
     createdAt: row.created_at,
-    expiresAt: row.expires_at || '',
+    expiresAt,
+    daysLeft,
+    lifetime,
+    live: !!live,
     locale: loc
   };
 }
@@ -157,5 +202,6 @@ module.exports = {
   keyInfoOnPanel,
   bindKeyOnPanel,
   licenseView,
+  liveLicenseInfo,
   makeLoaderToken
 };

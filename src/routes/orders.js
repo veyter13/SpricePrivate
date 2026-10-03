@@ -3,6 +3,7 @@
 const express = require('express');
 const db = require('../db');
 const catalog = require('../catalog');
+const licensing = require('../licensing');
 const { requireUser, optionalUser, ApiError, asyncRoute, logEvent } = require('./auth');
 
 const DEDUP_WINDOW_MIN = Number(process.env.ORDER_DEDUP_MINUTES || 10);
@@ -118,10 +119,41 @@ router.get(
       `SELECT * FROM orders WHERE user_id = $1 ORDER BY created_at DESC LIMIT 100`,
       [req.user.id]
     );
+    const licRows = await db.all(
+      `SELECT * FROM licenses WHERE user_id = $1 ORDER BY created_at DESC`,
+      [req.user.id]
+    );
 
     const created = new Date(req.user.created_at).getTime();
     const days = Math.max(1, Math.ceil((Date.now() - created) / 86400000));
     const spent = Number(agg.spent);
+
+    // Лицензии с расширенными полями: профиль показывает по каждой подписке
+    // то же, что и лоадер (срок, остаток дней, чек, FunPay-код). Срок и статус
+    // берём из панели — иначе продление/выключение ключа профиль не увидит.
+    const licenses = await Promise.all(
+      licRows.map(async (r) => {
+        const live = await licensing.liveLicenseInfo(r.key);
+        const v = licensing.licenseView(r, locale, live);
+        const product = catalog.getProduct(r.product_id);
+        return Object.assign({}, v, {
+          productName: product ? product.name : (r.product_id || ''),
+          gameLabel: r.game === 'cs2' ? 'CS2' : 'Roblox',
+          receipt: 'SPR-' + String(r.id).replace(/-/g, '').slice(0, 10).toUpperCase(),
+          funpayCode: r.funpay_code || ''
+        });
+      })
+    );
+
+    const active = licenses.filter((l) => l.status === 'active');
+    const dated = active.filter((l) => typeof l.daysLeft === 'number' && l.daysLeft >= 0);
+    const daysLeftMax = dated.length
+      ? dated.reduce((m, l) => (l.daysLeft > m ? l.daysLeft : m), 0)
+      : 0;
+    const anyLifetime = active.some((l) => l.lifetime);
+    const nextExpiry = dated.length
+      ? dated.slice().sort((a, b) => Date.parse(a.expiresAt) - Date.parse(b.expiresAt))[0].expiresAt
+      : null;
 
     res.json({
       ok: true,
@@ -130,15 +162,22 @@ router.get(
         nickname: req.user.nickname,
         email: req.user.email,
         verified: Number(req.user.email_verified) === 1,
-        createdAt: req.user.created_at
+        createdAt: req.user.created_at,
+        lastLoginAt: req.user.last_login_at || ''
       },
       stats: {
         orders: Number(agg.total),
         days,
         spent,
-        spentText: catalog.formatPrice(spent)
+        spentText: catalog.formatPrice(spent),
+        licenses: licenses.length,
+        active: active.length,
+        daysLeftMax,
+        anyLifetime,
+        nextExpiry
       },
-      orders: orders.map((o) => orderView(o, locale))
+      orders: orders.map((o) => orderView(o, locale)),
+      licenses
     });
   })
 );

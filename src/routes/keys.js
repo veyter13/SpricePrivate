@@ -41,12 +41,28 @@ async function licensesOf(userId, locale) {
   return rows.map((r) => licensing.licenseView(r, locale));
 }
 
+// То же, но с опросом панели по каждому ключу: показывает реальное состояние
+// (выключен тумблером / актуальный срок после продления). Запросы идут
+// параллельно, а если панель молчит — остаются данные из БД.
+async function licensesLive(userId, locale) {
+  const rows = await db.all(
+    `SELECT * FROM licenses WHERE user_id = $1 ORDER BY created_at DESC`,
+    [userId]
+  );
+  return Promise.all(
+    rows.map(async (r) => {
+      const live = await licensing.liveLicenseInfo(r.key);
+      return licensing.licenseView(r, locale, live);
+    })
+  );
+}
+
 router.get(
   '/keys/mine',
   requireUser,
   asyncRoute(async (req, res) => {
     const locale = req.query.lang === 'en' ? 'en' : 'ru';
-    res.json({ ok: true, licenses: await licensesOf(req.user.id, locale) });
+    res.json({ ok: true, licenses: await licensesLive(req.user.id, locale) });
   })
 );
 
@@ -228,7 +244,16 @@ router.post(
       ok: true,
       token,
       activeKey: activeOne ? activeOne.key : null,
-      activeGames: licenses.filter((l) => l.status === 'active').map((l) => ({ game: l.game, key: l.key, until: l.expiresAt || null })),
+      // Для каждой активной подписки сразу отдаём статус и остаток дней, чтобы
+      // лоадер показал их ещё до опроса панели (и работал, если панель молчит).
+      activeGames: licenses.filter((l) => l.status === 'active').map((l) => ({
+        game: l.game,
+        key: l.key,
+        until: l.expiresAt || null,
+        daysLeft: typeof l.daysLeft === 'number' ? l.daysLeft : -1,
+        lifetime: !!l.lifetime,
+        status: l.status
+      })),
       activeGame: activeOne ? activeOne.game : null,
       activeUntil: activeOne ? (activeOne.expiresAt || null) : null,
       nickname: user.nickname,
