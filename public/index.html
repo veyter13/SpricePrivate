@@ -1368,6 +1368,13 @@
     .lic__meter { height: 5px; border-radius: 999px; background: var(--border-soft); overflow: hidden; margin-bottom: 12px; }
     .lic__meter i { display: block; height: 100%; border-radius: 999px; background: var(--grad); transition: width 0.6s var(--ease-out); }
 
+    /* Подписка аннулирована в панели: короткая строка-пояснение вместо срока. */
+    .lic__note {
+      display: block; margin: 0 0 12px; padding: 8px 11px; border-radius: 9px;
+      font-size: 0.72rem; line-height: 1.45; color: var(--con);
+      background: var(--con-bg); border: 1px solid rgba(251, 113, 133, 0.28);
+    }
+
     .lic__rows { display: grid; gap: 7px; }
     .lic__row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
     .lic__row > span { font-size: 0.63rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-3); white-space: nowrap; }
@@ -3181,6 +3188,7 @@ spriceoverlaycs2: '<circle cx="12" cy="12" r="7.4"/><path d="M12 1.6v4.4M12 18v4
           'profile.errExpired': 'Срок ключа истёк',
           'profile.errPanel': 'Сервер лицензий недоступен, попробуй позже',
           'profile.errVerified': 'Сначала подтверди почту',
+          'profile.errAlreadyGame': 'По этой игре уже есть активная подписка. Вторую активировать нельзя — дождись окончания срока.',
           'profile.updated': 'обновлено {date}',
 
           // --- подробная карточка подписки ---
@@ -3191,6 +3199,7 @@ spriceoverlaycs2: '<circle cx="12" cy="12" r="7.4"/><path d="M12 1.6v4.4M12 18v4
           'profile.badgeOff': 'ОТКЛЮЧЕНА',
           'profile.badgeExpired': 'ИСТЁКЛА',
           'profile.badgeCheck': 'ПРОВЕРИТЬ',
+          'profile.badgeDeleted': 'УДАЛЕНА',
           'profile.lifetime': 'Бессрочно',
           'profile.kKey': 'Ключ',
           'profile.kReceipt': 'Чек',
@@ -3207,6 +3216,8 @@ spriceoverlaycs2: '<circle cx="12" cy="12" r="7.4"/><path d="M12 1.6v4.4M12 18v4
           'profile.agoFmt': 'истёк {n} назад',
           'profile.today': 'истекает сегодня',
           'profile.noDate': 'без срока',
+          'profile.deletedShort': 'ключ удалён',
+          'profile.deletedNote': 'Ключ удалён в панели — подписка больше не действует.',
           'profile.summary': 'Подписок: {total} · активных: {active}',
 
           'val.name.empty': 'Придумай ник — его будет видно в профиле.',
@@ -3273,6 +3284,7 @@ spriceoverlaycs2: '<circle cx="12" cy="12" r="7.4"/><path d="M12 1.6v4.4M12 18v4
           'err.server': 'Что-то сломалось на сервере. Попробуй позже.',
           'err.mail': 'Почта на сервере сейчас не отвечает — код отправить не получилось. Напиши нам напрямую, аккаунт создадим вручную.',
           'err.rate': 'Слишком много попыток. Подожди минуту.',
+          'err.ban': 'Слишком много неудачных попыток. Вход временно заблокирован — попробуй позже.',
           'err.verified': 'Сначала подтверди почту.'
         },
 
@@ -3469,6 +3481,7 @@ spriceoverlaycs2: '<circle cx="12" cy="12" r="7.4"/><path d="M12 1.6v4.4M12 18v4
           'profile.errExpired': 'Key has expired',
           'profile.errPanel': 'License server is unreachable, try later',
           'profile.errVerified': 'Verify your email first',
+          'profile.errAlreadyGame': 'You already have an active subscription for this game. You cannot activate a second one — wait until it expires.',
           'profile.updated': 'updated {date}',
 
           // --- detailed subscription card ---
@@ -3479,6 +3492,7 @@ spriceoverlaycs2: '<circle cx="12" cy="12" r="7.4"/><path d="M12 1.6v4.4M12 18v4
           'profile.badgeOff': 'DISABLED',
           'profile.badgeExpired': 'EXPIRED',
           'profile.badgeCheck': 'CHECK',
+          'profile.badgeDeleted': 'REMOVED',
           'profile.lifetime': 'Lifetime',
           'profile.kKey': 'Key',
           'profile.kReceipt': 'Receipt',
@@ -3495,6 +3509,8 @@ spriceoverlaycs2: '<circle cx="12" cy="12" r="7.4"/><path d="M12 1.6v4.4M12 18v4
           'profile.agoFmt': 'expired {n} ago',
           'profile.today': 'expires today',
           'profile.noDate': 'no expiry',
+          'profile.deletedShort': 'key removed',
+          'profile.deletedNote': 'The key was removed in the panel — the subscription is no longer active.',
           'profile.summary': 'Licenses: {total} · active: {active}',
 
           'val.name.empty': 'Pick a nickname — it will show up in your profile.',
@@ -3561,6 +3577,7 @@ spriceoverlaycs2: '<circle cx="12" cy="12" r="7.4"/><path d="M12 1.6v4.4M12 18v4
           'err.server': 'Something broke on the server. Try again later.',
           'err.mail': 'The mail server is not responding, so the code could not be sent. Contact us directly and we will create the account manually.',
           'err.rate': 'Too many attempts. Wait a minute.',
+          'err.ban': 'Too many failed attempts. Sign-in is temporarily blocked — try again later.',
           'err.verified': 'Confirm your email first.'
         }
       };
@@ -3677,6 +3694,12 @@ spriceoverlaycs2: '<circle cx="12" cy="12" r="7.4"/><path d="M12 1.6v4.4M12 18v4
         };
         updatePurchaseHint();
         syncPayButton();
+        if (currentUser) {
+          loadMyLicenses(true).then(function () {
+            updatePurchaseHint();
+            syncPayButton();
+          });
+        }
 
         lastFocused = document.activeElement;
         modalName.textContent = data.name;
@@ -3993,6 +4016,7 @@ spriceoverlaycs2: '<circle cx="12" cy="12" r="7.4"/><path d="M12 1.6v4.4M12 18v4
 
       var currentUser = null;
       var userOrders = 0;
+      var myLicenses = null;
       var purchaseCtx = null;
       var pendingPurchase = null;
       var authGate = false;
@@ -4052,6 +4076,7 @@ spriceoverlaycs2: '<circle cx="12" cy="12" r="7.4"/><path d="M12 1.6v4.4M12 18v4
         var d = (err && err.data) || {};
         if (c === 'network') return t('err.network');
         if (c === 'rate_limited') return t('err.rate');
+        if (c === 'banned') return t('err.ban');
         if (c === 'mail_unavailable') return t('err.mail');
         if (c === 'email_taken') return t('err.reg.mail');
         if (c === 'nickname_taken') return t('err.reg.nick');
@@ -4405,6 +4430,35 @@ spriceoverlaycs2: '<circle cx="12" cy="12" r="7.4"/><path d="M12 1.6v4.4M12 18v4
         return g === 'cs2' ? t('profile.game.cs2') : t('profile.game.roblox');
       }
 
+      function gameOfProduct(id) {
+        return String(id || '').toLowerCase().indexOf('cs2') >= 0 ? 'cs2' : 'roblox';
+      }
+
+      function activeForGameLocal(game) {
+        if (!myLicenses) return null;
+        for (var i = 0; i < myLicenses.length; i++) {
+          var l = myLicenses[i];
+          if (l && l.status === 'active' && gameOfProduct(l.game) === game) return l;
+        }
+        return null;
+      }
+
+      function currentGameClash() {
+        if (!currentUser || !purchaseCtx) return null;
+        return activeForGameLocal(gameOfProduct(purchaseCtx.id));
+      }
+
+      function loadMyLicenses(force) {
+        if (myLicenses && !force) return Promise.resolve(myLicenses);
+        return api('/api/keys/mine?lang=' + LANG).then(function (res) {
+          myLicenses = res.licenses || [];
+          return myLicenses;
+        }).catch(function () {
+          myLicenses = myLicenses || [];
+          return myLicenses;
+        });
+      }
+
       function copyText(v) {
         try {
           if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -4449,6 +4503,7 @@ spriceoverlaycs2: '<circle cx="12" cy="12" r="7.4"/><path d="M12 1.6v4.4M12 18v4
 
       // Подробные карточки подписок: срок, остаток дней, чек, FunPay-код и т.д.
       function paintLicenses(list) {
+        myLicenses = list || [];
         if (!licenseList) return;
         licenseList.innerHTML = '';
         if (profSubCount) profSubCount.textContent = list.length ? String(list.length) : '';
@@ -4463,6 +4518,9 @@ spriceoverlaycs2: '<circle cx="12" cy="12" r="7.4"/><path d="M12 1.6v4.4M12 18v4
         list.forEach(function (l, idx) {
           var active = l.status === 'active';
           var expired = l.status === 'expired';
+          // Ключ удалён в панели. Срок из БД после удаления не значит ничего,
+          // поэтому карточку гасим и вместо «осталось 7 дней» пишем причину.
+          var deleted = l.status === 'deleted' || l.deleted === true;
 
           var card = document.createElement('div');
           card.className = 'lic' + (active ? '' : ' lic--off');
@@ -4484,7 +4542,10 @@ spriceoverlaycs2: '<circle cx="12" cy="12" r="7.4"/><path d="M12 1.6v4.4M12 18v4
           tb.textContent = l.productName || licenseGameLabel(l.game);
           var ts = document.createElement('span');
           var left = daysLeftText(l.daysLeft, l.lifetime);
-          ts.textContent = licenseGameLabel(l.game) + (active ? ' · ' + left : '');
+          var sub = licenseGameLabel(l.game);
+          if (active) sub += ' · ' + left;
+          else if (deleted) sub += ' · ' + t('profile.deletedShort');
+          ts.textContent = sub;
           ttl.appendChild(tb);
           ttl.appendChild(ts);
           top.appendChild(ttl);
@@ -4492,6 +4553,7 @@ spriceoverlaycs2: '<circle cx="12" cy="12" r="7.4"/><path d="M12 1.6v4.4M12 18v4
           var badge = document.createElement('span');
           var bcls = 'lic__badge--warn', btxt = t('profile.badgeCheck');
           if (active) { bcls = 'lic__badge--on'; btxt = t('profile.badgeOn'); }
+          else if (deleted) { bcls = 'lic__badge--off'; btxt = t('profile.badgeDeleted'); }
           else if (expired) { bcls = 'lic__badge--off'; btxt = t('profile.badgeExpired'); }
           else if (l.status === 'disabled') { bcls = 'lic__badge--off'; btxt = t('profile.badgeOff'); }
           badge.className = 'lic__badge ' + bcls;
@@ -4510,12 +4572,20 @@ spriceoverlaycs2: '<circle cx="12" cy="12" r="7.4"/><path d="M12 1.6v4.4M12 18v4
             card.appendChild(meter);
           }
 
+          // --- причина, если подписка не действует ---
+          if (deleted) {
+            var note = document.createElement('div');
+            note.className = 'lic__note';
+            note.textContent = t('profile.deletedNote');
+            card.appendChild(note);
+          }
+
           // --- детали ---
           var rows = document.createElement('div');
           rows.className = 'lic__rows';
           [
             licRow(t('profile.kKey'), l.key, { strong: true, copy: true }),
-            licRow(t('profile.kExpires'), l.expiresAt ? fmtDate(l.expiresAt) : ''),
+            licRow(t('profile.kExpires'), deleted ? '' : (l.expiresAt ? fmtDate(l.expiresAt) : '')),
             licRow(t('profile.kLeft'), active ? left : ''),
             licRow(t('profile.kActivated'), l.activatedAt ? fmtDate(l.activatedAt) : ''),
             licRow(t('profile.kCreated'), l.createdAt ? fmtDate(l.createdAt) : ''),
@@ -4575,7 +4645,8 @@ spriceoverlaycs2: '<circle cx="12" cy="12" r="7.4"/><path d="M12 1.6v4.4M12 18v4
             key_expired: 'profile.errExpired',
             panel_unreachable: 'profile.errPanel',
             panel_error: 'profile.errPanel',
-            not_verified: 'profile.errVerified'
+            not_verified: 'profile.errVerified',
+            already_have_game: 'profile.errAlreadyGame'
           };
           var code = (err && err.code) || '';
           var msg = map[code] ? t(map[code]) : apiMessage(err);
@@ -4685,7 +4756,7 @@ spriceoverlaycs2: '<circle cx="12" cy="12" r="7.4"/><path d="M12 1.6v4.4M12 18v4
 
       function syncPayButton() {
         if (!modalPay) return;
-        var ready = payReady();
+        var ready = payReady() && !currentGameClash();
         modalPay.classList.toggle('is-locked', !ready);
         modalPay.setAttribute('aria-disabled', ready ? 'false' : 'true');
         if (ready && modalPayUrl) {
@@ -4717,6 +4788,10 @@ spriceoverlaycs2: '<circle cx="12" cy="12" r="7.4"/><path d="M12 1.6v4.4M12 18v4
         if (!modalAuthHint || !modalAuthHintText) return;
         modalAuthHint.hidden = false;
         modalAuthHintText.innerHTML = '';
+        if (currentGameClash()) {
+          modalAuthHintText.appendChild(document.createTextNode(t('profile.errAlreadyGame')));
+          return;
+        }
         if (payReady()) {
           modalAuthHintText.appendChild(document.createTextNode(t('modal.hint.loggedIn', { name: currentUser.name })));
           return;
@@ -4732,6 +4807,7 @@ spriceoverlaycs2: '<circle cx="12" cy="12" r="7.4"/><path d="M12 1.6v4.4M12 18v4
 
       function startSession(u, greeting) {
         var resume = pendingPurchase;
+        myLicenses = null;
         setUser(u);
         rememberLast({ login: u.nickname, email: u.email });
         codeCtx = null;
@@ -4747,6 +4823,7 @@ spriceoverlaycs2: '<circle cx="12" cy="12" r="7.4"/><path d="M12 1.6v4.4M12 18v4
         api('/api/auth/logout', { method: 'POST' }).catch(function () {});
         setUser(null);
         userOrders = 0;
+        myLicenses = null;
         renderAuth();
         closeProfile();
         closeUserMenu();
@@ -4829,6 +4906,13 @@ spriceoverlaycs2: '<circle cx="12" cy="12" r="7.4"/><path d="M12 1.6v4.4M12 18v4
             return;
           }
           if (!purchaseCtx) return;
+          if (currentGameClash()) {
+            e.preventDefault();
+            modalPay.classList.add('shake');
+            setTimeout(function () { modalPay.classList.remove('shake'); }, 460);
+            toast(t('profile.errAlreadyGame'), 'info');
+            return;
+          }
           recordOrder(purchaseCtx.id).then(function (saved) {
             if (saved) {
               toast(t('toast.orderSaved', { name: (pd(purchaseCtx.id) || {}).name || purchaseCtx.name }), 'ok');

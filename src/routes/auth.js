@@ -4,6 +4,7 @@ const express = require('express');
 const db = require('../db');
 const sec = require('../security');
 const mail = require('../mail');
+const guard = require('../guard');
 
 const COOKIE = 'sprice_session';
 const COOKIE_SECURE = process.env.COOKIE_SECURE
@@ -300,15 +301,22 @@ router.post(
       : await db.get(`SELECT * FROM users WHERE nickname_lower = $1`, [login.toLowerCase()]);
 
     if (!user) {
-      logEvent('login_fail', { emailLower: isEmail ? sec.normalizeEmail(login) : null, ip: req.ip });
+      // Штраф стража: после серии промахов IP закрывается целиком, а не
+      // ждёт сброса окна у express-rate-limit.
+      guard.strike(req, 2);
+      logEvent('login_fail', { emailLower: isEmail ? sec.normalizeEmail(login) : null, ip: req.clientIp || req.ip });
       throw new ApiError(401, 'invalid_credentials');
     }
 
     const ok = await sec.verifyPassword(password, user.password_hash);
     if (!ok) {
-      logEvent('login_fail', { userId: user.id, emailLower: user.email_lower, ip: req.ip });
+      guard.strike(req, 2);
+      logEvent('login_fail', { userId: user.id, emailLower: user.email_lower, ip: req.clientIp || req.ip });
       throw new ApiError(401, 'invalid_credentials');
     }
+
+    // Удачный вход — снимаем накопленные промахи.
+    guard.clear(req);
 
     if (Number(user.email_verified) !== 1) {
       let devCode;

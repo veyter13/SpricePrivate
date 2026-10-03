@@ -11,9 +11,12 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "test": "node test/e2e.js && node test/frontend.js",
+    "test": "node test/e2e.js && node test/frontend.js && node tools/test_deleted_key.js && node tools/test_dup_game.js && node tools/test_dup_game_ui.js",
     "test:api": "node test/e2e.js",
     "test:ui": "node test/frontend.js",
+    "test:lic": "node tools/test_deleted_key.js",
+    "test:dup": "node tools/test_dup_game.js",
+    "test:dup:ui": "node tools/test_dup_game_ui.js",
     "mail:check": "node test/smtp.js",
     "mail:set-pass": "node tools/set-mail-pass.js"
   },

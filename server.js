@@ -16,6 +16,7 @@ const rateLimit = require('express-rate-limit');
 
 const db = require('./src/db');
 const mail = require('./src/mail');
+const guard = require('./src/guard');
 const authRoutes = require('./src/routes/auth');
 const orderRoutes = require('./src/routes/orders');
 const keyRoutes = require('./src/routes/keys');
@@ -30,6 +31,9 @@ const app = express();
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
 
+// Страж стоит первым: забаненный IP отсекается до разбора тела запроса.
+app.use(guard.guard);
+
 app.use(express.json({ limit: '64kb' }));
 app.use(express.urlencoded({ extended: false, limit: '64kb' }));
 app.use(cookieParser());
@@ -39,6 +43,11 @@ app.use((req, res, next) => {
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  // Устаревший X-XSS-Protection сам создаёт уязвимости в старых IE — гасим.
+  res.setHeader('X-XSS-Protection', '0');
+  // Запрещаем чужому сайту открывать наш в окне/фрейме и тащить ресурсы.
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-site');
   if (IS_PROD) {
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   }
@@ -61,7 +70,18 @@ const authLimiter = rateLimit({
   message: { error: 'rate_limited' }
 });
 
+// Отдельный, более строгий лимит на вход из лоадера: там перебирают пароли
+// скриптом, а не ходят люди с опечатками. 10 попыток за 5 минут с одного IP.
+const loaderLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  limit: Number(process.env.LOADER_RATE_LIMIT || 10),
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'rate_limited' }
+});
+
 app.use('/api', apiLimiter);
+app.use('/api/loader/login', loaderLimiter);
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 app.use('/api/auth/verify', authLimiter);
@@ -76,6 +96,7 @@ app.get('/healthz', async (req, res) => {
       mail: mail.getMode(),
       mailEnv: mail.envPresence(),
       products: catalog.IDS.length,
+      guard: guard.stats(),
       uptime: Math.round(process.uptime())
     });
   } catch (e) {

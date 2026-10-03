@@ -15,8 +15,25 @@ function normCode(raw) {
     .replace(/\s+/g, '');
 }
 
+function normGame(value) {
+  return String(value || '').toLowerCase().indexOf('cs2') >= 0 ? 'cs2' : 'roblox';
+}
+
 function gameForProduct(productId) {
-  return String(productId || '').toLowerCase().indexOf('cs2') >= 0 ? 'cs2' : 'roblox';
+  return normGame(productId);
+}
+
+function sameGame(a, b) {
+  return normGame(a) === normGame(b);
+}
+
+function activeForGame(list, game) {
+  const arr = Array.isArray(list) ? list : [];
+  for (let i = 0; i < arr.length; i++) {
+    const l = arr[i];
+    if (l && l.status === 'active' && sameGame(l.game, game)) return l;
+  }
+  return null;
 }
 
 function daysForPlan(planIdx) {
@@ -110,6 +127,12 @@ async function bindKeyOnPanel(key, owner) {
   }
 }
 
+// Опрос панели по ключу. ВАЖНО различать три исхода:
+//   * панель ответила и ключ есть      -> { ok:true, ... }
+//   * панель ответила и ключа НЕТ      -> { ok:false, missing:true }  (404 not_found)
+//   * панель молчит / не настроена     -> null                        (нет связи)
+// Раньше 404 и «нет связи» сливались в один null, из-за чего удалённый в
+// панели ключ продолжал жить на сайте по устаревшей строке БД.
 async function keyInfoOnPanel(key) {
   if (!PANEL_URL || !PANEL_SECRET) return null;
   try {
@@ -118,7 +141,11 @@ async function keyInfoOnPanel(key) {
       { headers: { 'X-Api-Secret': PANEL_SECRET } }
     );
     const data = await r.json().catch(() => ({}));
-    return data && data.ok ? data : null;
+    if (data && data.ok === true) return data;
+    if (r.status === 404 || (data && data.error === 'not_found')) {
+      return { ok: false, missing: true, error: 'not_found' };
+    }
+    return null;
   } catch (e) {
     return null;
   }
@@ -133,10 +160,17 @@ function parseUtcMs(s) {
 
 // Живые данные панели по ключу: выключен ли тумблер и какой срок СЕЙЧАС.
 // Панель может быть недоступна — тогда возвращаем null и живём на данных БД.
+// Если панель ответила «ключа нет» — это не сбой связи, а факт удаления:
+// отдаём { missing:true }, и карточка на сайте гаснет.
 async function liveLicenseInfo(key) {
   if (!key) return null;
+  // Ключ ещё не выдан панелью (заявка в обработке) — спрашивать не о чем,
+  // иначе «PENDING-…» вечно выглядел бы как удалённый.
+  if (/^PENDING-/i.test(String(key))) return null;
   const info = await keyInfoOnPanel(key);
-  if (!info || info.ok !== true) return null;
+  if (!info) return null;
+  if (info.missing) return { missing: true };
+  if (info.ok !== true) return null;
   return {
     active: Number(info.active || 0) === 1,
     expiresAt: info.expires_at || '',
@@ -153,7 +187,13 @@ function licenseView(row, locale, live) {
     ? String(row.expires_at)
     : '';
   let status = row.status || 'active';
-  if (live) {
+  // Ключ удалён в панели. Снимок БД (status='active', старый expires_at) после
+  // удаления не значит ничего, поэтому срок обнуляем, а не показываем «7 дней».
+  const deleted = !!(live && live.missing);
+  if (deleted) {
+    status = 'deleted';
+    expiresAt = '';
+  } else if (live) {
     if (live.expiresAt) expiresAt = String(live.expiresAt);
     if (live.active === false) status = 'disabled';
   }
@@ -164,10 +204,10 @@ function licenseView(row, locale, live) {
   if (status === 'active' && expired) status = 'expired';
 
   // Ключ без даты = бессрочный (панель отдаёт "lifetime").
-  const lifetime = !expiresAt;
+  const lifetime = !deleted && !expiresAt;
   // Округляем вверх: 3 часа до конца — это ещё «1 день», иначе живой ключ
   // показывал бы «осталось 0 дней» и выглядел бы сломанным.
-  const daysLeft = lifetime
+  const daysLeft = (deleted || lifetime)
     ? -1
     : (expired ? -Math.floor((now - ms) / 86400000)
                : Math.ceil((ms - now) / 86400000));
@@ -178,13 +218,14 @@ function licenseView(row, locale, live) {
     productId: row.product_id,
     game: row.game,
     status,
+    deleted,
     funpayCode: row.funpay_code,
     activatedAt: row.activated_at,
     createdAt: row.created_at,
     expiresAt,
     daysLeft,
     lifetime,
-    live: !!live,
+    live: !!live && !deleted,
     locale: loc
   };
 }
@@ -195,6 +236,9 @@ function makeLoaderToken() {
 
 module.exports = {
   normCode,
+  normGame,
+  sameGame,
+  activeForGame,
   gameForProduct,
   daysForPlan,
   funpayLookup,
@@ -203,5 +247,6 @@ module.exports = {
   bindKeyOnPanel,
   licenseView,
   liveLicenseInfo,
+  parseUtcMs,
   makeLoaderToken
 };
