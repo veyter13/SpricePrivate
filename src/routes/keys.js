@@ -167,7 +167,7 @@ router.post(
   '/keys/claim',
   requireUser,
   asyncRoute(async (req, res) => {
-    const key = String((req.body && req.body.key) || '').trim().toUpperCase().replace(/s+/g, '');
+    const key = String((req.body && req.body.key) || '').trim().toUpperCase().replace(/\s+/g, '');
     const locale = (req.body && req.body.locale) === 'en' ? 'en' : 'ru';
     if (key.length < 6) throw new ApiError(400, 'key_short');
     if (Number(req.user.email_verified) !== 1) throw new ApiError(403, 'not_verified');
